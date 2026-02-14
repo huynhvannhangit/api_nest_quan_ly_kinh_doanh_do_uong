@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { UserService } from '../../modules/user/user.service';
 import { JwtService } from '@nestjs/jwt';
@@ -17,6 +18,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
@@ -52,6 +55,8 @@ export class AuthService {
 
   async login(user: UserPayload) {
     const { email, role, id, permissions } = user;
+
+    this.logger.log(`User ${email} logged in successfully`);
 
     const tokens = await this.getTokens(id, email, role, permissions);
     await this.updateRefreshToken(id, tokens.refreshToken);

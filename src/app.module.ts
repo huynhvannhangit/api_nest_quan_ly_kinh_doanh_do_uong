@@ -130,7 +130,6 @@ export class AppModule implements NestModule {
     consumer
       .apply(LoggerMiddleware)
       .exclude(
-        'auth/login',
         'auth/register',
         'auth/refresh',
         'auth/forgot-password',
