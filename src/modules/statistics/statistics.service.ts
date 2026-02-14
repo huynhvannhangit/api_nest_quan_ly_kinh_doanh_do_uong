@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Invoice, InvoiceStatus } from '../invoice/entities/invoice.entity';
+import { InvoiceItem } from '../invoice/entities/invoice-item.entity';
 import { StatisticsQueryDto } from './dto/statistics-query.dto';
 import dayjs from 'dayjs';
 
@@ -22,6 +23,8 @@ export class StatisticsService {
   constructor(
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(InvoiceItem)
+    private readonly invoiceItemRepository: Repository<InvoiceItem>,
   ) {}
 
   async getOverview() {
@@ -74,12 +77,12 @@ export class StatisticsService {
   }
 
   async getTopProducts() {
-    const topProducts = await this.invoiceRepository.manager
-      .createQueryBuilder('InvoiceItem', 'item')
+    const topProducts = await this.invoiceItemRepository
+      .createQueryBuilder('item')
       .leftJoin('item.product', 'product')
       .select('product.name', 'name')
       .addSelect('SUM(item.quantity)', 'quantity')
-      .addSelect('SUM(item.totalPrice)', 'revenue')
+      .addSelect('SUM(item.total)', 'revenue')
       .groupBy('product.id')
       .orderBy('revenue', 'DESC')
       .limit(5)
