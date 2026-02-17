@@ -3,6 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Invoice, InvoiceStatus } from '../invoice/entities/invoice.entity';
 import { InvoiceItem } from '../invoice/entities/invoice-item.entity';
+import { Area } from '../area/entities/area.entity';
+import { Table } from '../table/entities/table.entity';
+import { Category } from '../category/entities/category.entity';
+import { Product } from '../product/entities/product.entity';
+import { Employee } from '../employee/entities/employee.entity';
+import { Order } from '../order/entities/order.entity';
+import { User } from '../user/entities/user.entity';
+import {
+  ApprovalRequest,
+  ApprovalStatus,
+} from '../approval/entities/approval-request.entity';
 import { StatisticsQueryDto } from './dto/statistics-query.dto';
 import dayjs from 'dayjs';
 
@@ -25,6 +36,22 @@ export class StatisticsService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(InvoiceItem)
     private readonly invoiceItemRepository: Repository<InvoiceItem>,
+    @InjectRepository(Area)
+    private readonly areaRepository: Repository<Area>,
+    @InjectRepository(Table)
+    private readonly tableRepository: Repository<Table>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @InjectRepository(Employee)
+    private readonly employeeRepository: Repository<Employee>,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(ApprovalRequest)
+    private readonly approvalRepository: Repository<ApprovalRequest>,
   ) {}
 
   async getOverview() {
@@ -39,11 +66,30 @@ export class StatisticsService {
       where: { status: InvoiceStatus.PAID },
     });
 
+    const totalAreas = await this.areaRepository.count();
+    const totalTables = await this.tableRepository.count();
+    const totalCategories = await this.categoryRepository.count();
+    const totalProducts = await this.productRepository.count();
+    const totalEmployees = await this.employeeRepository.count();
+    const totalOrdersCount = await this.orderRepository.count();
+    const totalUsers = await this.userRepository.count();
+    const pendingApprovals = await this.approvalRepository.count({
+      where: { status: ApprovalStatus.PENDING },
+    });
+
     return {
       totalRevenue: parseFloat(totalRevenueResult?.total || '0'),
       totalOrders,
       paidOrders,
       completionRate: totalOrders > 0 ? (paidOrders / totalOrders) * 100 : 0,
+      totalAreas,
+      totalTables,
+      totalCategories,
+      totalProducts,
+      totalEmployees,
+      totalOrdersCount,
+      totalUsers,
+      pendingApprovals,
     };
   }
 

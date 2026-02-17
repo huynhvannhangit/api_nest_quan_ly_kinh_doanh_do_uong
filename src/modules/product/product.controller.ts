@@ -6,7 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -16,6 +21,37 @@ import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.deco
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
+
+  @Post('upload')
+  @ActionLog({
+    action: 'UPLOAD_IMAGE',
+    module: 'PRODUCT',
+    description: 'Tải lên hình ảnh sản phẩm',
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      storage: diskStorage({
+        destination: './public/uploads',
+
+        filename: (req: any, file: any, cb: any) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+          const ext = extname(file.originalname);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          cb(null, `${uniqueSuffix}${ext}`);
+        },
+      }),
+    }),
+  )
+  uploadFile(@UploadedFile() file: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const filename = file?.filename as string;
+    return {
+      url: `/public/uploads/${filename}`,
+    };
+  }
 
   @Post()
   @ActionLog({

@@ -8,6 +8,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 // --- Controllers & Services ---
 import { AppController } from './app.controller';
@@ -94,6 +96,10 @@ import { SeedsModule } from './database/seeds/seeds.module';
     ApprovalModule,
     LoggingModule,
     JwtModule.register({}),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      serveRoot: '/public',
+    }),
   ],
   controllers: [AppController],
   providers: [
