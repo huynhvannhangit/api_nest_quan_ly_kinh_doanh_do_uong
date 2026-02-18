@@ -20,14 +20,14 @@ export class TableService {
 
   async findAll(): Promise<Table[]> {
     return this.tableRepository.find({
-      relations: ['area'],
+      relations: ['area', 'creator', 'updater'],
     });
   }
 
   async findOne(id: number): Promise<Table> {
     const table = await this.tableRepository.findOne({
       where: { id },
-      relations: ['area'],
+      relations: ['area', 'creator', 'updater'],
     });
     if (!table) {
       throw new NotFoundException(`Table with ID ${id} not found`);

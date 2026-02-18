@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Area } from '../../area/entities/area.entity';
+import { User } from '../../user/entities/user.entity';
 
 export enum TableStatus {
   AVAILABLE = 'AVAILABLE',
@@ -29,4 +30,12 @@ export class Table extends BaseEntity {
   @ManyToOne(() => Area, (area) => area.tables)
   @JoinColumn({ name: 'area_id' })
   area: Area;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'created_by' })
+  creator: User;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'updated_by' })
+  updater: User;
 }

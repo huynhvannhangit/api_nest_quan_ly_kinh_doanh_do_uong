@@ -4,6 +4,9 @@ import {
   IsOptional,
   IsDateString,
   IsNumber,
+  Min,
+  Length,
+  IsNumberString,
 } from 'class-validator';
 
 export class CreateEmployeeDto {
@@ -30,10 +33,17 @@ export class CreateEmployeeDto {
 
   @IsString()
   @IsOptional()
+  @Length(12, 12, { message: 'Identity Card must be exactly 12 digits' })
+  @IsNumberString({}, { message: 'Identity Card must contain only numbers' })
+  identityCard?: string;
+
+  @IsString()
+  @IsOptional()
   position?: string;
 
   @IsNumber()
   @IsOptional()
+  @Min(0, { message: 'Salary must be a positive number' })
   salary?: number;
 
   @IsNumber()

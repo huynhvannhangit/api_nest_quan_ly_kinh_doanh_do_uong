@@ -18,11 +18,16 @@ export class CategoryService {
   }
 
   async findAll(): Promise<Category[]> {
-    return this.categoryRepository.find();
+    return this.categoryRepository.find({
+      relations: ['creator', 'updater'],
+    });
   }
 
   async findOne(id: number): Promise<Category | null> {
-    return this.categoryRepository.findOne({ where: { id } });
+    return this.categoryRepository.findOne({
+      where: { id },
+      relations: ['creator', 'updater'],
+    });
   }
 
   async update(

@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsBoolean,
+  Min,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -17,6 +18,7 @@ export class CreateProductDto {
 
   @IsNumber()
   @IsNotEmpty()
+  @Min(0, { message: 'Price must be a positive number' })
   price: number;
 
   @IsString()

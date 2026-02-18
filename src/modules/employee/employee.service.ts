@@ -1,7 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Employee } from './entities/employee.entity';
+
+import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { UpdateEmployeeDto } from './dto/update-employee.dto';
 
 @Injectable()
 export class EmployeeService {
@@ -12,10 +19,12 @@ export class EmployeeService {
 
   private async generateEmployeeCode(): Promise<string> {
     // Find the latest employee by ID to get the next number
-    const lastEmployee = await this.employeeRepository.findOne({
+    const lastEmployees = await this.employeeRepository.find({
       order: { id: 'DESC' },
       withDeleted: true, // Include soft-deleted to avoid code conflicts
+      take: 1,
     });
+    const lastEmployee = lastEmployees[0];
 
     let nextNumber = 1;
     if (lastEmployee && lastEmployee.employeeCode) {
@@ -30,7 +39,7 @@ export class EmployeeService {
     return `NV${nextNumber.toString().padStart(3, '0')}`;
   }
 
-  async create(data: any, createdBy: number): Promise<Employee> {
+  async create(data: CreateEmployeeDto, createdBy: number): Promise<Employee> {
     try {
       console.log('=== Creating Employee ===');
       console.log('Input data:', JSON.stringify(data, null, 2));
@@ -39,7 +48,7 @@ export class EmployeeService {
       const employee = new Employee();
 
       // Assign data first (excluding employeeCode)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { employeeCode: _employeeCode, ...employeeData } = data;
       Object.assign(employee, employeeData);
 
@@ -55,17 +64,33 @@ export class EmployeeService {
 
       console.log('Employee before save:', employee);
 
+      this.validateAge(employeeData.birthDate);
+
       const result = await this.employeeRepository.save(employee);
       console.log('Employee created successfully with ID:', result.id);
       return result;
     } catch (error) {
       console.error('=== Error Creating Employee ===');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.error('Error message:', error.message);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.error('Error stack:', error.stack);
+
+      console.error('Error message:', (error as Error).message);
+
+      console.error('Error stack:', (error as Error).stack);
       console.error('Error details:', error);
       throw error;
+    }
+  }
+
+  private validateAge(birthDateString: string | Date | undefined) {
+    if (!birthDateString) return;
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      throw new BadRequestException('Employee must be at least 18 years old');
     }
   }
 
@@ -86,8 +111,15 @@ export class EmployeeService {
     return employee;
   }
 
-  async update(id: number, data: any, updatedBy: number): Promise<Employee> {
+  async update(
+    id: number,
+    data: UpdateEmployeeDto,
+    updatedBy: number,
+  ): Promise<Employee> {
     const employee = await this.findOne(id);
+    if (data.birthDate) {
+      this.validateAge(data.birthDate);
+    }
     Object.assign(employee, data);
     employee.updatedBy = updatedBy;
     return this.employeeRepository.save(employee);

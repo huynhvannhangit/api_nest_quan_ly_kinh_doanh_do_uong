@@ -20,14 +20,14 @@ export class AreaService {
 
   async findAll(): Promise<Area[]> {
     return this.areaRepository.find({
-      relations: ['tables'],
+      relations: ['tables', 'creator', 'updater'],
     });
   }
 
   async findOne(id: number): Promise<Area> {
     const area = await this.areaRepository.findOne({
       where: { id },
-      relations: ['tables'],
+      relations: ['tables', 'creator', 'updater'],
     });
     if (!area) {
       throw new NotFoundException(`Area with ID ${id} not found`);

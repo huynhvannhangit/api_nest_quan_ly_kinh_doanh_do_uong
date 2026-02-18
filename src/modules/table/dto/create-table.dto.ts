@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsEnum,
+  Min,
 } from 'class-validator';
 import { TableStatus } from '../entities/table.entity';
 
@@ -14,6 +15,7 @@ export class CreateTableDto {
 
   @IsNumber()
   @IsOptional()
+  @Min(0, { message: 'Capacity must be a positive number' })
   capacity?: number;
 
   @IsEnum(TableStatus)

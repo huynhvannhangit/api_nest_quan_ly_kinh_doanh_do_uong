@@ -16,6 +16,9 @@ export class Employee extends BaseEntity {
   @Column({ nullable: true })
   address: string;
 
+  @Column({ name: 'identity_card', unique: true, nullable: true })
+  identityCard: string;
+
   @Column({ type: 'date', nullable: true, name: 'birth_date' })
   birthDate: Date;
 
