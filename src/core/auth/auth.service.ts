@@ -20,6 +20,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 export interface UserPayload {
   sub: number;
   email: string;
+  fullName?: string;
   role: string | { name: string; [key: string]: any };
   permissions?: Permission[];
   id?: number;
@@ -68,7 +69,13 @@ export class AuthService {
 
     this.logger.log(`User ${email} logged in successfully`);
 
-    const tokens = await this.getTokens(id, email, role, permissions);
+    const tokens = await this.getTokens(
+      id,
+      email,
+      role,
+      user.fullName,
+      permissions,
+    );
     await this.updateRefreshToken(id, tokens.refreshToken);
     return tokens;
   }
@@ -94,6 +101,7 @@ export class AuthService {
       user.id,
       user.email,
       roleName,
+      user.fullName,
       user.permissions,
     );
     await this.updateRefreshToken(user.id, tokens.refreshToken);
@@ -108,18 +116,19 @@ export class AuthService {
     userId: number,
     email: string,
     role: string,
+    fullName?: string,
     permissions?: Permission[],
   ) {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: userId, email, role, permissions },
+        { sub: userId, email, role, fullName, permissions },
         {
           secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
           expiresIn: '1d',
         },
       ),
       this.jwtService.signAsync(
-        { sub: userId, email, role, permissions },
+        { sub: userId, email, role, fullName, permissions },
         {
           secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
           expiresIn: '7d',

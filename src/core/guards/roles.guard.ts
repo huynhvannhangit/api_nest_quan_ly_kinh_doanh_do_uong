@@ -31,15 +31,17 @@ export class RolesGuard implements CanActivate {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const request = context.switchToHttp().getRequest();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const userPayload = request.user as { sub: number } | undefined;
+    const userPayload = request.user as
+      | { id?: number; sub?: number }
+      | undefined;
 
-    if (!userPayload || !userPayload.sub) {
+    const userId = userPayload?.id || userPayload?.sub;
+
+    if (!userId) {
       return false;
     }
 
-    const user: User | undefined = await this.userService.findById(
-      userPayload.sub,
-    );
+    const user: User | undefined = await this.userService.findById(userId);
 
     if (!user || user.status !== ('ACTIVE' as any)) {
       return false;

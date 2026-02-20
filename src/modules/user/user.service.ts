@@ -63,6 +63,7 @@ export class UserService {
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
       .addSelect('user.password')
+      .addSelect('user.fullName')
       .where('user.email = :email', { email })
       .getOne();
     return user || undefined;

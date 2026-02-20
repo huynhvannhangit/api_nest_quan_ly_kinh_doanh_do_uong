@@ -12,6 +12,7 @@ export type JwtPayloadWithRt = JwtPayload & { refreshToken: string };
 export type UserPayload = {
   id: number;
   email: string;
+  fullName?: string;
   role: string;
   permissions?: Permission[];
   refreshToken?: string;
