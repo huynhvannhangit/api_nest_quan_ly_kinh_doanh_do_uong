@@ -140,8 +140,29 @@ export class UserService {
     });
   }
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  async findAll(): Promise<
+    (User & {
+      employee?: { id: number; fullName: string; employeeCode: string } | null;
+    })[]
+  > {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndMapOne(
+        'user.employee',
+        'employees',
+        'employee',
+        'employee.user_id = user.id AND employee.deleted_at IS NULL',
+      )
+      .select([
+        'user.id',
+        'user.email',
+        'user.fullName',
+        'user.status',
+        'user.isVerified',
+      ])
+      .addSelect(['employee.id', 'employee.fullName', 'employee.employeeCode'])
+      .leftJoinAndSelect('user.role', 'role')
+      .getMany();
   }
 
   async update(

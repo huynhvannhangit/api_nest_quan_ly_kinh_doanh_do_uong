@@ -133,35 +133,24 @@ export class AppModule implements NestModule {
    * @param consumer MiddlewareConsumer
    */
   configure(consumer: MiddlewareConsumer) {
-    // 1. LoggerMiddleware
-    // Log thông tin cơ bản của request (method, url, status code).
+    // LoggerMiddleware: Log thông tin cơ bản của request
     consumer
       .apply(LoggerMiddleware)
-      .exclude(
-        'auth/register',
-        'auth/refresh',
-        'auth/forgot-password',
-        'auth/reset-password',
-        'auth/verify-email',
-      )
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
+      .forRoutes({ path: '*path', method: RequestMethod.ALL });
 
-    // 2. AuthMiddleware
-    // Xác thực người dùng (Authentication), check JWT token.
+    // AuthMiddleware: Xác thực JWT token trước khi vào các route bảo mật
+    // Trong NestJS 11, phải dùng '*path' thay vì '*'
+    // và phải thêm prefix 'api/' vì globalPrefix được áp dụng trước middleware
     consumer
       .apply(AuthMiddleware)
       .exclude(
-        'auth/login',
-        'auth/register',
-        'auth/refresh',
-        'auth/forgot-password',
-        'auth/reset-password',
-        'auth/verify-email',
-        {
-          path: 'api',
-          method: RequestMethod.GET,
-        },
+        { path: '/api/auth/login', method: RequestMethod.POST },
+        { path: '/api/auth/register', method: RequestMethod.POST },
+        { path: '/api/auth/refresh', method: RequestMethod.POST },
+        { path: '/api/auth/forgot-password', method: RequestMethod.POST },
+        { path: '/api/auth/reset-password', method: RequestMethod.POST },
+        { path: '/api/auth/verify-email', method: RequestMethod.GET },
       )
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
+      .forRoutes({ path: '*path', method: RequestMethod.ALL });
   }
 }

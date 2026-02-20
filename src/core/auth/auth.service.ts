@@ -44,13 +44,10 @@ export class AuthService {
   ): Promise<Partial<User> | null> {
     const user = await this.userService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
-      if (!user.deviceId) {
+      // Update deviceId on every login (allow login from any device)
+      if (user.deviceId !== deviceId) {
         await this.userService.update(user.id, { deviceId });
         user.deviceId = deviceId;
-      } else if (user.deviceId !== deviceId) {
-        const errorMsg = `Login failed: registered device ${user.deviceId}, request device ${deviceId}`;
-        console.warn(errorMsg);
-        throw new ForbiddenException('Login failed: Invalid Device ID');
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

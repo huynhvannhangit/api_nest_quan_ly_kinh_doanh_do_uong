@@ -4,8 +4,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Employee } from './entities/employee.entity';
+import { User } from '../user/entities/user.entity';
 
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -15,6 +16,8 @@ export class EmployeeService {
   constructor(
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   private async generateEmployeeCode(): Promise<string> {
@@ -44,6 +47,18 @@ export class EmployeeService {
       console.log('=== Creating Employee ===');
       console.log('Input data:', JSON.stringify(data, null, 2));
       console.log('Created by user ID:', createdBy);
+
+      // Validate userId uniqueness: 1 user chỉ được liên kết với 1 nhân viên
+      if (data.userId) {
+        const existingEmployeeWithUser = await this.employeeRepository.findOne({
+          where: { userId: data.userId },
+        });
+        if (existingEmployeeWithUser) {
+          throw new BadRequestException(
+            'Tài khoản này đã được liên kết với nhân viên khác',
+          );
+        }
+      }
 
       const employee = new Employee();
 
@@ -117,6 +132,21 @@ export class EmployeeService {
     updatedBy: number,
   ): Promise<Employee> {
     const employee = await this.findOne(id);
+
+    // Validate userId uniqueness if it's being changed
+    if (data.userId !== undefined) {
+      if (data.userId !== null) {
+        const existingEmployeeWithUser = await this.employeeRepository.findOne({
+          where: { userId: data.userId },
+        });
+        if (existingEmployeeWithUser && existingEmployeeWithUser.id !== id) {
+          throw new BadRequestException(
+            'Tài khoản này đã được liên kết với nhân viên khác',
+          );
+        }
+      }
+    }
+
     if (data.birthDate) {
       this.validateAge(data.birthDate);
     }
@@ -130,5 +160,34 @@ export class EmployeeService {
     employee.deletedBy = deletedBy;
     await this.employeeRepository.save(employee); // Save deletedBy first
     await this.employeeRepository.softRemove(employee);
+  }
+
+  /**
+   * Lấy danh sách user chưa bị gán cho nhân viên nào.
+   * Nếu excludeEmployeeId được cung cấp, bao gồm cả user đang gán cho nhân viên đó.
+   */
+  async getAvailableUsers(
+    excludeEmployeeId?: number,
+  ): Promise<{ id: number; email: string; fullName: string }[]> {
+    // Lấy tất cả userId đã bị gán (ngoại trừ nhân viên đang edit)
+    const assignedEmployees = await this.employeeRepository.find({
+      where: { userId: Not(IsNull()) },
+      select: ['userId', 'id'],
+    });
+
+    const assignedUserIds = assignedEmployees
+      .filter((e) => !excludeEmployeeId || e.id !== excludeEmployeeId)
+      .map((e) => e.userId)
+      .filter((uid): uid is number => uid !== null && uid !== undefined);
+
+    // Query users không bị gán
+    const queryBuilder = this.userRepository.createQueryBuilder('user');
+    queryBuilder.select(['user.id', 'user.email', 'user.fullName']);
+
+    if (assignedUserIds.length > 0) {
+      queryBuilder.where('user.id NOT IN (:...ids)', { ids: assignedUserIds });
+    }
+
+    return queryBuilder.getMany();
   }
 }

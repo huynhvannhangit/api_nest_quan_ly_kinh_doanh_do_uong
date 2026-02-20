@@ -18,12 +18,13 @@ export class AuthMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     const authHeader = req.headers.authorization;
 
+    // Nếu không có token → để JwtAuthGuard ở controller xử lý (không throw ở đây)
+    // Đây là pattern chuẩn NestJS 11: middleware không block route công khai
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException(
-        'Missing or invalid authorization header',
-      );
+      return next();
     }
 
+    // Nếu có token → verify và gắn user vào request
     const token = authHeader.substring(7);
 
     try {
@@ -32,7 +33,6 @@ export class AuthMiddleware implements NestMiddleware {
       });
 
       // Map payload to UserPayload structure
-
       req.user = {
         ...payload,
         id: payload.sub,

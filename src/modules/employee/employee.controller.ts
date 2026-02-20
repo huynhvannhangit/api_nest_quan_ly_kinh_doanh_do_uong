@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -28,6 +29,14 @@ export class EmployeeController {
   })
   create(@Body() data: CreateEmployeeDto, @GetCurrentUserId() userId: number) {
     return this.employeeService.create(data, userId);
+  }
+
+  @Get('available-users')
+  @Permissions(Permission.EMPLOYEE_VIEW)
+  getAvailableUsers(@Query('excludeEmployeeId') excludeEmployeeId?: string) {
+    return this.employeeService.getAvailableUsers(
+      excludeEmployeeId ? +excludeEmployeeId : undefined,
+    );
   }
 
   @Get()
