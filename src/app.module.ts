@@ -42,6 +42,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
 import { ApprovalModule } from './modules/approval/approval.module';
 import { LoggingModule } from './modules/logging/logging.module';
 import { SeedsModule } from './database/seeds/seeds.module';
+import { RoleModule } from './modules/role/role.module';
 
 /**
  * @module AppModule
@@ -100,6 +101,7 @@ import { SeedsModule } from './database/seeds/seeds.module';
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/public',
     }),
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [

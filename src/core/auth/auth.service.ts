@@ -6,15 +6,24 @@ import {
   Logger,
 } from '@nestjs/common';
 import { UserService } from '../../modules/user/user.service';
+import { User } from '../../modules/user/entities/user.entity';
+
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Permission } from '../../common/enums/permission.enum';
-import { UserPayload } from './types';
 import { EmailService } from '../email/email.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+
+export interface UserPayload {
+  sub: number;
+  email: string;
+  role: string | { name: string; [key: string]: any };
+  permissions?: Permission[];
+  id?: number;
+}
 
 @Injectable()
 export class AuthService {
@@ -31,18 +40,15 @@ export class AuthService {
     email: string,
     pass: string,
     deviceId: string,
-  ): Promise<any> {
+  ): Promise<Partial<User> | null> {
     const user = await this.userService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
-      // 1. If user has no Device ID, bind it to this device
       if (!user.deviceId) {
         await this.userService.update(user.id, { deviceId });
         user.deviceId = deviceId;
-      }
-      // 2. If user has Device ID, check for match
-      else if (user.deviceId !== deviceId) {
+      } else if (user.deviceId !== deviceId) {
         const errorMsg = `Login failed: registered device ${user.deviceId}, request device ${deviceId}`;
-        console.warn(errorMsg); // Log for security monitoring
+        console.warn(errorMsg);
         throw new ForbiddenException('Login failed: Invalid Device ID');
       }
 
@@ -53,8 +59,12 @@ export class AuthService {
     return null;
   }
 
-  async login(user: UserPayload) {
-    const { email, role, id, permissions } = user;
+  async login(user: Partial<User>) {
+    const email = user.email!;
+    const id = user.id!;
+    const permissions = user.permissions;
+    const role =
+      typeof user.role === 'string' ? user.role : user.role?.name || '';
 
     this.logger.log(`User ${email} logged in successfully`);
 
@@ -78,10 +88,12 @@ export class AuthService {
     );
     if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
 
+    const roleName = typeof user.role === 'string' ? user.role : user.role.name;
+
     const tokens = await this.getTokens(
       user.id,
       user.email,
-      user.role,
+      roleName,
       user.permissions,
     );
     await this.updateRefreshToken(user.id, tokens.refreshToken);
@@ -132,7 +144,6 @@ export class AuthService {
   async forgotPassword(email: string) {
     const user = await this.userService.findByEmail(email);
     if (!user) {
-      // For security reasons, don't reveal if user exists
       return {
         message:
           'If your email is in our system, you will receive a reset link',
@@ -141,7 +152,7 @@ export class AuthService {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const expires = new Date();
-    expires.setHours(expires.getHours() + 1); // 1 hour expiry
+    expires.setHours(expires.getHours() + 1);
 
     await this.userService.updateResetPasswordToken(email, resetToken, expires);
     await this.emailService.sendPasswordResetEmail(

@@ -1,6 +1,7 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Permission } from '../../../common/enums/permission.enum';
+import { Role } from '../../role/entities/role.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -25,8 +26,9 @@ export class User extends BaseEntity {
   @Column({ name: 'full_name' })
   fullName: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.STAFF })
-  role: UserRole;
+  @ManyToOne(() => Role, { eager: true })
+  @JoinColumn({ name: 'role_id' })
+  role: Role | string; // Allow string for backward compatibility or DTOs
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;

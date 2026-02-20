@@ -9,12 +9,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
-import { Roles } from '../../core/decorators/roles.decorator';
-import { UserRole } from './entities/user.entity';
+import { Permissions } from '../../core/decorators/permissions.decorator';
+import { Permission } from '../../common/enums/permission.enum';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
 
 @Controller('user')
@@ -23,7 +23,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Permissions(Permission.USER_CREATE)
   create(
     @Body() createUserDto: CreateUserDto,
     @GetCurrentUserId() userId: number,
@@ -32,28 +32,29 @@ export class UserController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  @Permissions(Permission.USER_VIEW)
   findAll() {
     return this.userService.findAll();
   }
 
   @Get(':id')
+  @Permissions(Permission.USER_VIEW)
   findOne(@Param('id') id: string) {
     return this.userService.findById(+id);
   }
 
   @Patch(':id')
+  @Permissions(Permission.USER_UPDATE)
   update(
     @Param('id') id: string,
-    @Body() updateData: Partial<User>,
+    @Body() updateData: UpdateUserDto,
     @GetCurrentUserId() userId: number,
   ) {
-    // Note: Add update method to UserService if not present
     return this.userService.update(+id, updateData, userId);
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Permissions(Permission.USER_DELETE)
   remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
     return this.userService.remove(+id, userId);
   }

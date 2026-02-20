@@ -2,6 +2,8 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { EmailService } from '../../core/email/email.service';
@@ -14,30 +16,33 @@ export class UserService {
     private emailService: EmailService,
   ) {}
 
-  async create(userData: Partial<User>, createdBy?: number): Promise<User> {
-    if (!userData.email || !userData.password) {
-      throw new ConflictException('Email and password are required');
-    }
+  async create(
+    createUserDto: CreateUserDto,
+    createdBy?: number,
+  ): Promise<User> {
+    const { email, password, roleId, ...rest } = createUserDto;
 
     const existingUser = await this.usersRepository.findOne({
-      where: { email: userData.email },
+      where: { email },
     });
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     const newUser = this.usersRepository.create({
-      ...userData,
+      ...rest,
+      email,
       password: hashedPassword,
       verificationToken,
       createdBy,
-      updatedBy: createdBy, // Initial creation, updatedBy is same as createdBy
+      updatedBy: createdBy,
+      role: roleId ? { id: roleId } : undefined,
     });
 
-    const savedUser = await this.usersRepository.save(newUser);
+    const savedUser: User = await this.usersRepository.save(newUser);
 
     // Send welcome/verification email
     await this.emailService.sendWelcomeEmail(
@@ -54,15 +59,20 @@ export class UserService {
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
-    const user = await this.usersRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'password', 'role', 'status', 'fullName'],
-    });
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .getOne();
     return user || undefined;
   }
 
   async findById(id: number): Promise<User | undefined> {
-    const user = await this.usersRepository.findOne({ where: { id } });
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['role'],
+    });
     return user || undefined;
   }
 
@@ -113,7 +123,6 @@ export class UserService {
     });
     if (!user) return null;
 
-    // Check expiry
     if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
       return null;
     }
@@ -136,10 +145,22 @@ export class UserService {
 
   async update(
     id: number,
-    updateData: Partial<User>,
+    updateUserDto: UpdateUserDto,
     updatedBy?: number,
   ): Promise<User | undefined> {
-    await this.usersRepository.update(id, { ...updateData, updatedBy });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { roleId, role, ...rest } = updateUserDto;
+
+    const updatePayload: Record<string, any> = {
+      ...rest,
+      updatedBy,
+    };
+
+    if (roleId) {
+      updatePayload.role = { id: roleId };
+    }
+
+    await this.usersRepository.update(id, updatePayload);
     return this.findById(id);
   }
 

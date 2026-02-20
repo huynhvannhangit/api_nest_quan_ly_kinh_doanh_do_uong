@@ -1,20 +1,24 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { UserService } from '../../modules/user/user.service';
+import { User } from '../../modules/user/entities/user.entity';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { UserRole } from '../../modules/user/entities/user.entity';
-import { UserPayload } from '../auth/types';
 import { Permission } from '../../common/enums/permission.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private userService: UserService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
+
     const requiredPermissions = this.reflector.getAllAndOverride<Permission[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -24,32 +28,62 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest<{ user: UserPayload }>();
-    if (!user) return false;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const request = context.switchToHttp().getRequest();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const userPayload = request.user as { sub: number } | undefined;
 
-    // ADMIN has full access
-    if (user.role === (UserRole.ADMIN as string)) {
+    if (!userPayload || !userPayload.sub) {
+      return false;
+    }
+
+    const user: User | undefined = await this.userService.findById(
+      userPayload.sub,
+    );
+
+    if (!user || user.status !== ('ACTIVE' as any)) {
+      return false;
+    }
+
+    const userRole = user.role;
+
+    // Admin always has access
+    if (
+      userRole &&
+      typeof userRole === 'object' &&
+      'name' in userRole &&
+      userRole.name === 'ADMIN'
+    ) {
       return true;
     }
 
-    // Check Roles
-    const hasRole = requiredRoles
-      ? requiredRoles.some((role) => user.role === (role as string))
-      : false;
-
-    // Check Permissions
-    const hasPermission = requiredPermissions
-      ? requiredPermissions.some((perm) =>
-          (user.permissions as string[])?.includes(perm as string),
-        )
-      : false;
-
-    // If endpoint requires either role or permission, grant access if one is met
-    // If only roles are specified, check roles. If only permissions, check permissions.
-    if (requiredRoles && requiredPermissions) {
-      return hasRole || hasPermission;
+    if (requiredRoles) {
+      if (typeof userRole === 'string') {
+        if (requiredRoles.includes(userRole)) return true;
+      } else if (
+        userRole &&
+        typeof userRole === 'object' &&
+        'name' in userRole
+      ) {
+        if (requiredRoles.includes(userRole.name)) return true;
+      }
     }
 
-    return hasRole || hasPermission;
+    if (requiredPermissions) {
+      if (
+        userRole &&
+        typeof userRole === 'object' &&
+        'permissions' in userRole &&
+        Array.isArray(userRole.permissions)
+      ) {
+        const userPermissions = userRole.permissions;
+        const hasPermission = requiredPermissions.every((permission) =>
+          userPermissions.includes(permission),
+        );
+        if (hasPermission) return true;
+      }
+    }
+
+    return false;
   }
 }

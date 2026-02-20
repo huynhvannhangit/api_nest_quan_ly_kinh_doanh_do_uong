@@ -23,6 +23,9 @@ export class CreateUserDto {
   fullName: string;
 
   @IsOptional()
+  roleId?: number; // Dynamic role ID
+
+  @IsOptional()
   @IsEnum(UserRole)
-  role?: UserRole;
+  role?: UserRole; // Keep for backward compatibility if needed, but prefer roleId
 }
