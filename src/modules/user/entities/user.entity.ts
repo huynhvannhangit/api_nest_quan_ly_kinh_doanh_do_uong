@@ -1,6 +1,5 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
-import { Permission } from '../../../common/enums/permission.enum';
 import { Role } from '../../role/entities/role.entity';
 
 export enum UserRole {
@@ -32,9 +31,6 @@ export class User extends BaseEntity {
 
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
-
-  @Column({ type: 'json', nullable: true })
-  permissions: Permission[];
 
   @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
@@ -73,4 +69,7 @@ export class User extends BaseEntity {
 
   @Column({ name: 'device_id', type: 'varchar', nullable: true })
   deviceId: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  avatar: string | null;
 }

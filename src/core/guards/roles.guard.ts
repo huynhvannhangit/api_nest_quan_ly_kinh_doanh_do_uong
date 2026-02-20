@@ -28,13 +28,13 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const request = context.switchToHttp().getRequest();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const userPayload = request.user as
-      | { id?: number; sub?: number }
-      | undefined;
+    const request: {
+      user: { id?: number; sub?: number };
+      params: Record<string, string>;
+      method: string;
+    } = context.switchToHttp().getRequest();
 
+    const userPayload = request.user;
     const userId = userPayload?.id || userPayload?.sub;
 
     if (!userId) {
@@ -42,9 +42,17 @@ export class RolesGuard implements CanActivate {
     }
 
     const user: User | undefined = await this.userService.findById(userId);
-
     if (!user || user.status !== ('ACTIVE' as any)) {
       return false;
+    }
+
+    // Allow user to view/update their own profile
+    if (
+      request.params.id &&
+      +request.params.id === userId &&
+      (request.method === 'GET' || request.method === 'PATCH')
+    ) {
+      return true;
     }
 
     const userRole = user.role;

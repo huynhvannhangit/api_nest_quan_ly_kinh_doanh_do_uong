@@ -5,6 +5,7 @@ export type JwtPayload = {
   sub: number;
   role: string;
   permissions?: Permission[];
+  avatar?: string | null;
 };
 
 export type JwtPayloadWithRt = JwtPayload & { refreshToken: string };
@@ -16,4 +17,5 @@ export type UserPayload = {
   role: string;
   permissions?: Permission[];
   refreshToken?: string;
+  avatar?: string | null;
 };

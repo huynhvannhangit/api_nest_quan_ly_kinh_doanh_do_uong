@@ -98,7 +98,7 @@ import { RoleModule } from './modules/role/role.module';
     LoggingModule,
     JwtModule.register({}),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+      rootPath: join(process.cwd(), 'public'),
       serveRoot: '/public',
     }),
     RoleModule,

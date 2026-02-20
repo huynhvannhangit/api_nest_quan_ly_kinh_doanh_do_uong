@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from '../../modules/user/user.service';
 import { User } from '../../modules/user/entities/user.entity';
+import { Role } from '../../modules/role/entities/role.entity';
 
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -60,7 +61,8 @@ export class AuthService {
   async login(user: Partial<User>) {
     const email = user.email!;
     const id = user.id!;
-    const permissions = user.permissions;
+    const permissions =
+      typeof user.role === 'object' ? user.role?.permissions : [];
     const role =
       typeof user.role === 'string' ? user.role : user.role?.name || '';
 
@@ -72,6 +74,7 @@ export class AuthService {
       role,
       user.fullName,
       permissions,
+      user.avatar,
     );
     await this.updateRefreshToken(id, tokens.refreshToken);
     return tokens;
@@ -99,7 +102,8 @@ export class AuthService {
       user.email,
       roleName,
       user.fullName,
-      user.permissions,
+      (user.role as Role)?.permissions,
+      user.avatar,
     );
     await this.updateRefreshToken(user.id, tokens.refreshToken);
     return tokens;
@@ -115,17 +119,18 @@ export class AuthService {
     role: string,
     fullName?: string,
     permissions?: Permission[],
+    avatar?: string | null,
   ) {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: userId, email, role, fullName, permissions },
+        { sub: userId, email, role, fullName, permissions, avatar },
         {
           secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
           expiresIn: '1d',
         },
       ),
       this.jwtService.signAsync(
-        { sub: userId, email, role, fullName, permissions },
+        { sub: userId, email, role, fullName, permissions, avatar },
         {
           secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
           expiresIn: '7d',
