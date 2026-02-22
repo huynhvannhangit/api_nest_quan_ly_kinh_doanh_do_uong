@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { OrderStatus } from './entities/order.entity';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
 
@@ -32,6 +32,21 @@ export class OrderController {
     return this.orderService.findAll();
   }
 
+  @Post(':id/cancel')
+  @ActionLog({
+    action: 'CANCEL_ORDER',
+    module: 'ORDER',
+    description: 'Huỷ đơn hàng',
+  })
+  cancel(@Param('id') id: string, @GetCurrentUserId() userId: number) {
+    return this.orderService.cancel(+id, userId);
+  }
+
+  @Get('active/table/:tableId')
+  findActiveByTable(@Param('tableId') tableId: string) {
+    return this.orderService.findActiveByTable(+tableId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(+id);
@@ -49,6 +64,20 @@ export class OrderController {
     @GetCurrentUserId() userId: number,
   ) {
     return this.orderService.updateStatus(+id, status, userId);
+  }
+
+  @Patch(':id/add-items')
+  @ActionLog({
+    action: 'ADD_ORDER_ITEMS',
+    module: 'ORDER',
+    description: 'Thêm món vào đơn hàng hiện tại',
+  })
+  addItems(
+    @Param('id') id: string,
+    @Body('items') items: CreateOrderItemDto[],
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.orderService.addItems(+id, items, userId);
   }
 
   @Delete(':id')

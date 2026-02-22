@@ -8,7 +8,7 @@ import {
   Delete,
 } from '@nestjs/common';
 import { InvoiceService } from './invoice.service';
-import { Invoice } from './entities/invoice.entity';
+import { Invoice, PaymentMethod } from './entities/invoice.entity';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
@@ -64,6 +64,21 @@ export class InvoiceController {
       data as unknown as Partial<Invoice>,
       userId,
     );
+  }
+
+  @Post(':id/pay')
+  @Permissions(Permission.INVOICE_UPDATE)
+  @ActionLog({
+    action: 'PROCESS_PAYMENT',
+    module: 'INVOICE',
+    description: 'Xử lý thanh toán hóa đơn',
+  })
+  processPayment(
+    @Param('id') id: string,
+    @Body() data: { paymentMethod: PaymentMethod },
+    @GetCurrentUserId() userId: number,
+  ): Promise<Invoice> {
+    return this.invoiceService.processPayment(+id, data, userId);
   }
 
   @Delete(':id')

@@ -8,7 +8,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderStatus } from '../entities/order.entity.js';
+import { OrderStatus } from '../entities/order.entity';
 
 export class CreateOrderItemDto {
   @IsNumber()

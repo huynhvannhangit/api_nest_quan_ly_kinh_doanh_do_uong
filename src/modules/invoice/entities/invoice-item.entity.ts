@@ -22,6 +22,6 @@ export class InvoiceItem extends BaseEntity {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   total: number;
 
-  @Column({ nullable: true })
-  note: string;
+  @Column({ type: 'text', nullable: true })
+  note: string | null;
 }

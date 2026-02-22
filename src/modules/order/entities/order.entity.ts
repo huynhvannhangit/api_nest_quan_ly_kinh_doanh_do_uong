@@ -2,7 +2,7 @@ import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../user/entities/user.entity';
 import { Table } from '../../table/entities/table.entity';
-import { OrderItem } from './order-item.entity.js';
+import { OrderItem } from './order-item.entity';
 
 export enum OrderStatus {
   PENDING = 'PENDING',
@@ -27,14 +27,14 @@ export class Order extends BaseEntity {
   status: OrderStatus;
 
   @Column({ type: 'text', nullable: true })
-  notes: string;
+  notes: string | null;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })
   creator: User;
 
   @Column({ name: 'table_id', nullable: true })
-  tableId: number;
+  tableId: number | null;
 
   @ManyToOne(() => Table, { nullable: true })
   @JoinColumn({ name: 'table_id' })

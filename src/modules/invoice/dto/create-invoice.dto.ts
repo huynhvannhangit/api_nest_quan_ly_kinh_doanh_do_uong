@@ -1,10 +1,4 @@
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsEnum,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsEnum } from 'class-validator';
 
 import { PaymentMethod } from '../entities/invoice.entity';
 
@@ -15,17 +9,9 @@ export class CreateInvoiceDto {
 
   @IsNumber()
   @IsOptional()
-  discount?: number;
-
-  @IsNumber()
-  @IsOptional()
-  tax?: number;
+  discountPercent?: number;
 
   @IsEnum(PaymentMethod)
-  @IsNotEmpty()
-  paymentMethod: PaymentMethod;
-
-  @IsString()
   @IsOptional()
-  notes?: string;
+  paymentMethod?: PaymentMethod;
 }
