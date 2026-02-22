@@ -8,4 +8,7 @@ export class StatisticsQueryDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  @IsOptional()
+  groupBy?: 'day' | 'week' | 'month';
 }
