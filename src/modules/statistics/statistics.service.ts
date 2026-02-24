@@ -233,4 +233,18 @@ export class StatisticsService {
       revenue: parseFloat(p.revenue || '0'),
     }));
   }
+
+  async getDashboardData() {
+    const [overview, revenue, topProducts] = await Promise.all([
+      this.getOverview(),
+      this.getRevenueByDateRange({}),
+      this.getTopProducts(),
+    ]);
+
+    return {
+      overview,
+      revenue,
+      topProducts,
+    };
+  }
 }

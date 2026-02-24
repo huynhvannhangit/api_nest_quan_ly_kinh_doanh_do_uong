@@ -5,7 +5,6 @@ import { User } from '../../user/entities/user.entity';
 export enum ApprovalType {
   INVOICE_CANCEL = 'INVOICE_CANCEL',
   INVOICE_MERGE = 'INVOICE_MERGE',
-  INVOICE_DISCOUNT = 'INVOICE_DISCOUNT',
   PRODUCT_DELETE = 'PRODUCT_DELETE',
   EMPLOYEE_DELETE = 'EMPLOYEE_DELETE',
 }

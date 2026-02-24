@@ -32,4 +32,10 @@ export class StatisticsController {
   async export(@Query() query: StatisticsQueryDto, @Res() res: Response) {
     return this.statisticsService.exportExcel(query, res);
   }
+
+  @Get('dashboard')
+  @Permissions(Permission.STATISTICS_VIEW)
+  getDashboard() {
+    return this.statisticsService.getDashboardData();
+  }
 }
