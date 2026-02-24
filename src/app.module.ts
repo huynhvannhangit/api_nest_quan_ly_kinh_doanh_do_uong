@@ -19,6 +19,7 @@ import { AppService } from './app.service';
 import { AllExceptionsFilter } from './core/filters/http-exception.filter';
 import { TransformInterceptor } from './core/interceptors/transform.interceptor';
 import { ActionLogInterceptor } from './core/interceptors/action-log.interceptor';
+import { SystemConfigModule } from './modules/system-config/system-config.module';
 
 // --- Middleware ---
 import { LoggerMiddleware } from './core/middleware/logger.middleware';
@@ -102,6 +103,7 @@ import { RoleModule } from './modules/role/role.module';
       serveRoot: '/public',
     }),
     RoleModule,
+    SystemConfigModule,
   ],
   controllers: [AppController],
   providers: [
