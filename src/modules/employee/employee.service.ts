@@ -10,6 +10,9 @@ import { User } from '../user/entities/user.entity';
 
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { UserService } from '../user/user.service';
+import { ApprovalsService } from '../approval/approvals.service';
+import { ApprovalType } from '../approval/entities/approval-request.entity';
 
 @Injectable()
 export class EmployeeService {
@@ -18,6 +21,8 @@ export class EmployeeService {
     private readonly employeeRepository: Repository<Employee>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly userService: UserService,
+    private readonly approvalsService: ApprovalsService,
   ) {}
 
   private async generateEmployeeCode(): Promise<string> {
@@ -130,6 +135,41 @@ export class EmployeeService {
     id: number,
     data: UpdateEmployeeDto,
     updatedBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(updatedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeUpdate(id, data, updatedBy);
+    }
+
+    const oldData = await this.findOne(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.UPDATE,
+        metadata: {
+          serviceName: 'EmployeeService',
+          methodName: 'executeUpdate',
+          args: [id, data],
+          oldData,
+          newData: data,
+        },
+        reason: reason || `Cập nhật thông tin nhân viên ID: ${id}`,
+      },
+      updatedBy,
+    );
+  }
+
+  async executeUpdate(
+    id: number,
+    data: UpdateEmployeeDto,
+    updatedBy: number,
   ): Promise<Employee> {
     const employee = await this.findOne(id);
 
@@ -155,7 +195,36 @@ export class EmployeeService {
     return this.employeeRepository.save(employee);
   }
 
-  async remove(id: number, deletedBy: number): Promise<void> {
+  async remove(id: number, deletedBy: number, reason?: string): Promise<any> {
+    const user = await this.userService.findById(deletedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeRemove(id, deletedBy);
+    }
+
+    const oldData = await this.findOne(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        metadata: {
+          serviceName: 'EmployeeService',
+          methodName: 'executeRemove',
+          args: [id],
+          oldData,
+        },
+        reason: reason || `Xoá nhân viên ID: ${id}`,
+      },
+      deletedBy,
+    );
+  }
+
+  async executeRemove(id: number, deletedBy: number): Promise<void> {
     const employee = await this.findOne(id);
     employee.deletedBy = deletedBy;
     await this.employeeRepository.save(employee); // Save deletedBy first

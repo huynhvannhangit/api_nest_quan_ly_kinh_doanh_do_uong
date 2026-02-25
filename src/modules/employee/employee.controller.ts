@@ -60,10 +60,16 @@ export class EmployeeController {
   })
   update(
     @Param('id') id: string,
-    @Body() data: UpdateEmployeeDto,
+    @Body() data: UpdateEmployeeDto & { reason?: string },
     @GetCurrentUserId() userId: number,
   ) {
-    return this.employeeService.update(+id, data, userId);
+    const { reason, ...employeeData } = data;
+    return this.employeeService.update(
+      +id,
+      employeeData as UpdateEmployeeDto,
+      userId,
+      reason,
+    );
   }
 
   @Delete(':id')
@@ -73,7 +79,11 @@ export class EmployeeController {
     module: 'EMPLOYEE',
     description: 'Xóa nhân viên',
   })
-  remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
-    return this.employeeService.remove(+id, userId);
+  remove(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.employeeService.remove(+id, userId, body?.reason);
   }
 }

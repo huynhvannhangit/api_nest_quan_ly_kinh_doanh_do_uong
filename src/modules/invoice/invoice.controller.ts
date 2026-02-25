@@ -90,8 +90,9 @@ export class InvoiceController {
   })
   remove(
     @Param('id') id: string,
+    @Body() body: { reason?: string },
     @GetCurrentUserId() userId: number,
   ): Promise<void> {
-    return this.invoiceService.remove(+id, userId);
+    return this.invoiceService.remove(+id, userId, body?.reason);
   }
 }

@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { ProductHistoryService } from './product-history.service';
+import { UserService } from '../user/user.service';
+import { ApprovalsService } from '../approval/approvals.service';
+import { ApprovalType } from '../approval/entities/approval-request.entity';
 
 @Injectable()
 export class ProductService {
@@ -10,6 +13,8 @@ export class ProductService {
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly historyService: ProductHistoryService,
+    private readonly userService: UserService,
+    private readonly approvalsService: ApprovalsService,
   ) {}
 
   async create(
@@ -52,6 +57,46 @@ export class ProductService {
     id: number,
     updateData: Partial<Product>,
     userId?: number,
+    reason?: string,
+  ): Promise<any> {
+    if (!userId) {
+      return this.executeUpdate(id, updateData, userId);
+    }
+
+    const user = await this.userService.findById(userId);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeUpdate(id, updateData, userId);
+    }
+
+    // Fetch current data to store as oldData
+    const oldData = await this.findOne(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.UPDATE,
+        metadata: {
+          serviceName: 'ProductService',
+          methodName: 'executeUpdate',
+          args: [id, updateData],
+          oldData,
+          newData: updateData,
+        },
+        reason: reason || `Cập nhật sản phẩm ID: ${id}`,
+      },
+      userId,
+    );
+  }
+
+  async executeUpdate(
+    id: number,
+    updateData: Partial<Product>,
+    userId?: number,
   ): Promise<Product> {
     const oldProduct = await this.findOne(id);
     const updatedProduct = await this.productRepository.save({
@@ -71,7 +116,41 @@ export class ProductService {
     return updatedProduct;
   }
 
-  async remove(id: number, userId?: number): Promise<void> {
+  async remove(id: number, userId?: number, reason?: string): Promise<any> {
+    if (!userId) {
+      return this.executeRemove(id, userId);
+    }
+
+    const user = await this.userService.findById(userId);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeRemove(id, userId);
+    }
+
+    // Fetch current data to store as oldData
+    const oldData = await this.findOne(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        metadata: {
+          serviceName: 'ProductService',
+          methodName: 'executeRemove',
+          args: [id],
+          oldData,
+        },
+        reason: reason || `Xoá sản phẩm ID: ${id}`,
+      },
+      userId,
+    );
+  }
+
+  async executeRemove(id: number, userId?: number): Promise<void> {
     const product = await this.findOne(id);
     if (userId) {
       product.deletedBy = userId;

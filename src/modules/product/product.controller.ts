@@ -84,10 +84,11 @@ export class ProductController {
   })
   update(
     @Param('id') id: string,
-    @Body() updateData: UpdateProductDto,
+    @Body() updateData: UpdateProductDto & { reason?: string },
     @GetCurrentUserId() userId: number,
   ) {
-    return this.productService.update(+id, updateData, userId);
+    const { reason, ...data } = updateData;
+    return this.productService.update(+id, data, userId, reason);
   }
 
   @Delete(':id')
@@ -96,7 +97,11 @@ export class ProductController {
     module: 'PRODUCT',
     description: 'Xóa sản phẩm',
   })
-  remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
-    return this.productService.remove(+id, userId);
+  remove(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.productService.remove(+id, userId, body?.reason);
   }
 }

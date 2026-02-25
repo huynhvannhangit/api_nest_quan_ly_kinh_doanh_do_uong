@@ -51,10 +51,11 @@ export class TableController {
   })
   update(
     @Param('id') id: string,
-    @Body() data: UpdateTableDto,
+    @Body() data: UpdateTableDto & { reason?: string },
     @GetCurrentUserId() userId: number,
   ) {
-    return this.tableService.update(+id, data, userId);
+    const { reason, ...tableData } = data;
+    return this.tableService.update(+id, tableData, userId, reason);
   }
 
   @Delete(':id')
@@ -64,7 +65,11 @@ export class TableController {
     module: 'TABLE',
     description: 'Xóa bàn',
   })
-  remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
-    return this.tableService.remove(+id, userId);
+  remove(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.tableService.remove(+id, userId, body?.reason);
   }
 }

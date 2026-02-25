@@ -51,10 +51,11 @@ export class AreaController {
   })
   update(
     @Param('id') id: string,
-    @Body() data: UpdateAreaDto,
+    @Body() data: UpdateAreaDto & { reason?: string },
     @GetCurrentUserId() userId: number,
   ) {
-    return this.areaService.update(+id, data, userId);
+    const { reason, ...areaData } = data;
+    return this.areaService.update(+id, areaData, userId, reason);
   }
 
   @Delete(':id')
@@ -64,7 +65,11 @@ export class AreaController {
     module: 'AREA',
     description: 'Xóa khu vực',
   })
-  remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
-    return this.areaService.remove(+id, userId);
+  remove(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.areaService.remove(+id, userId, body?.reason);
   }
 }

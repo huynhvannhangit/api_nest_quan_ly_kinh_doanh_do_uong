@@ -11,6 +11,9 @@ import { TableService } from '../table/table.service';
 import { TableStatus } from '../table/entities/table.entity';
 import { OrderService } from '../order/order.service';
 import { OrderStatus } from '../order/entities/order.entity';
+import { ApprovalsService } from '../approval/approvals.service';
+import { UserService } from '../user/user.service';
+import { ApprovalType } from '../approval/entities/approval-request.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -21,6 +24,8 @@ export class InvoiceService {
     private readonly invoiceItemRepository: Repository<InvoiceItem>,
     private readonly tableService: TableService,
     private readonly orderService: OrderService,
+    private readonly approvalsService: ApprovalsService,
+    private readonly userService: UserService,
   ) {}
 
   async create(data: Partial<Invoice>, createdBy: number): Promise<Invoice> {
@@ -138,7 +143,37 @@ export class InvoiceService {
     return this.findOne(id);
   }
 
-  async remove(id: number, deletedBy: number): Promise<void> {
+  async remove(id: number, userId: number, reason?: string): Promise<any> {
+    const user = await this.userService.findById(userId);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeRemove(id, userId);
+    }
+
+    const oldData = await this.findOne(id);
+
+    // Create approval request for soft delete
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        metadata: {
+          serviceName: 'InvoiceService',
+          methodName: 'executeRemove',
+          args: [id],
+          oldData,
+        },
+        reason: reason || 'Yêu cầu xoá hoá đơn',
+      },
+      userId,
+    );
+  }
+
+  async executeRemove(id: number, deletedBy: number): Promise<void> {
     const invoice = await this.findOne(id);
     invoice.deletedBy = deletedBy;
     await this.invoiceRepository.save(invoice);

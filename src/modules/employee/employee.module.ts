@@ -4,9 +4,15 @@ import { EmployeeService } from './employee.service';
 import { EmployeeController } from './employee.controller';
 import { Employee } from './entities/employee.entity';
 import { User } from '../user/entities/user.entity';
+import { ApprovalModule } from '../approval/approval.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Employee, User])],
+  imports: [
+    TypeOrmModule.forFeature([Employee, User]),
+    ApprovalModule,
+    UserModule,
+  ],
   providers: [EmployeeService],
   controllers: [EmployeeController],
   exports: [EmployeeService],

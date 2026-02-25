@@ -6,12 +6,16 @@ import { Invoice } from './entities/invoice.entity';
 import { InvoiceItem } from './entities/invoice-item.entity';
 import { TableModule } from '../table/table.module';
 import { OrderModule } from '../order/order.module';
+import { ApprovalModule } from '../approval/approval.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Invoice, InvoiceItem]),
     TableModule,
     OrderModule,
+    ApprovalModule,
+    UserModule,
   ],
   providers: [InvoiceService],
   controllers: [InvoiceController],
