@@ -44,6 +44,7 @@ import { ApprovalModule } from './modules/approval/approval.module';
 import { LoggingModule } from './modules/logging/logging.module';
 import { SeedsModule } from './database/seeds/seeds.module';
 import { RoleModule } from './modules/role/role.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 /**
  * @module AppModule
@@ -104,6 +105,7 @@ import { RoleModule } from './modules/role/role.module';
     }),
     RoleModule,
     SystemConfigModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

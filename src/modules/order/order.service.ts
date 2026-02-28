@@ -8,6 +8,7 @@ import { TableService } from '../table/table.service';
 import { TableStatus } from '../table/entities/table.entity';
 import { Product } from '../product/entities/product.entity';
 import { CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto'; // Updated DTO import
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class OrderService {
@@ -17,6 +18,7 @@ export class OrderService {
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
     private readonly tableService: TableService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(data: CreateOrderDto, createdBy: number): Promise<Order> {
@@ -58,6 +60,19 @@ export class OrderService {
         createdBy,
       );
     }
+
+    // Gửi thông báo realtime khi có đơn hàng mới
+    await this.notificationService.sendNotification(
+      'NEW_ORDER',
+      'Đơn hàng mới',
+      `Đơn hàng ${savedOrder.orderNumber} vừa được tạo${savedOrder.tableId ? ` cho bàn #${savedOrder.tableId}` : ''}`,
+      {
+        orderId: savedOrder.id,
+        orderNumber: savedOrder.orderNumber,
+        tableId: savedOrder.tableId,
+        totalPrice: savedOrder.totalPrice,
+      },
+    );
 
     return savedOrder;
   }

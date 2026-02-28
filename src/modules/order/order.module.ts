@@ -5,9 +5,14 @@ import { OrderController } from './order.controller';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { TableModule } from '../table/table.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem]), TableModule],
+  imports: [
+    TypeOrmModule.forFeature([Order, OrderItem]),
+    TableModule,
+    NotificationModule,
+  ],
   providers: [OrderService],
   controllers: [OrderController],
   exports: [OrderService],

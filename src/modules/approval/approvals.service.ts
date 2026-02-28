@@ -7,11 +7,12 @@ import {
   ApprovalRequest,
   ApprovalStatus,
 } from './entities/approval-request.entity';
+import { NotificationService } from '../notification/notification.service';
 
 interface ApprovalMetadata {
   serviceName: string;
   methodName: string;
-  args: any[];
+  args: unknown[];
 }
 
 @Injectable()
@@ -21,6 +22,7 @@ export class ApprovalsService {
     @InjectRepository(ApprovalRequest)
     private readonly approvalRepository: Repository<ApprovalRequest>,
     private readonly moduleRef: ModuleRef,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(data: any, userId: number): Promise<ApprovalRequest> {
@@ -69,17 +71,37 @@ export class ApprovalsService {
 
     const saved = await this.approvalRepository.save(approval);
 
+    // Gửi thông báo khi approval được duyệt hoặc từ chối
+    const isApproved = data.status === ApprovalStatus.APPROVED;
+    const statusLabel = isApproved ? 'Đã duyệt' : 'Đã từ chối';
+    // cspell:disable
+    await this.notificationService.sendNotification(
+      'APPROVAL_UPDATED',
+      `${statusLabel} yêu cầu phê duyệt`,
+      `Yêu cầu ${saved.requestNumber} đã được ${isApproved ? 'phê duyệt' : 'từ chối'}${data.reviewNote ? `: "${data.reviewNote}"` : ''}`,
+      {
+        approvalId: saved.id,
+        requestNumber: saved.requestNumber,
+        status: data.status,
+        reviewNote: data.reviewNote,
+        reviewedBy: userId,
+      },
+    );
+    // cspell:enable
+
     // If approved, execute the corresponding action
     if (
       prevStatus === ApprovalStatus.PENDING &&
       data.status === ApprovalStatus.APPROVED
     ) {
-      await this.executeAction(saved).catch((err: any) => {
-        this.logger.error(
-          `Failed to execute approved action: ${err?.message || 'Unknown error'}`,
-        );
+      try {
+        await this.executeAction(saved);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Failed to execute approved action: ${errorMessage}`);
         // Optionally revert status or handle error
-      });
+      }
     }
 
     return saved;
@@ -97,9 +119,12 @@ export class ApprovalsService {
     try {
       // Resolve the service dynamically
       // metadata.serviceName should be the class name or token
-      const service = this.moduleRef.get(metadata.serviceName, {
-        strict: false,
-      });
+      const service = this.moduleRef.get<Record<string, unknown>>(
+        metadata.serviceName,
+        {
+          strict: false,
+        },
+      );
       if (!service) {
         throw new Error(`Service ${metadata.serviceName} not found`);
       }
@@ -118,10 +143,10 @@ export class ApprovalsService {
       this.logger.log(
         `Successfully executed ${metadata.serviceName}.${methodName} for approval ${approval.requestNumber}`,
       );
-    } catch (error: any) {
-      this.logger.error(
-        `Execution error: ${error?.message || 'Unknown error'}`,
-      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Execution error: ${errorMessage}`);
       throw error;
     }
   }
