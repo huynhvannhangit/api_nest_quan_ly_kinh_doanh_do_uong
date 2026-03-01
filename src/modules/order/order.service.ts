@@ -54,7 +54,7 @@ export class OrderService {
     const savedOrder = await this.orderRepository.save(order);
 
     if (order.tableId) {
-      await this.tableService.update(
+      await this.tableService.executeUpdate(
         order.tableId,
         { status: TableStatus.OCCUPIED },
         createdBy,
@@ -157,7 +157,7 @@ export class OrderService {
     const savedOrder = await this.orderRepository.save(order);
 
     if (order.tableId) {
-      await this.tableService.update(
+      await this.tableService.executeUpdate(
         order.tableId,
         { status: TableStatus.AVAILABLE },
         userId,

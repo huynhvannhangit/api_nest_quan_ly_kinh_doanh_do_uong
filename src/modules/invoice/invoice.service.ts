@@ -126,13 +126,13 @@ export class InvoiceService {
 
     // Update associated table if exists
     if (invoice.table?.id) {
-      await this.tableService.update(
+      await this.tableService.executeUpdate(
         invoice.table.id,
         { status: TableStatus.AVAILABLE },
         updatedBy,
       );
     } else if (invoice.order?.tableId) {
-      await this.tableService.update(
+      await this.tableService.executeUpdate(
         invoice.order.tableId,
         { status: TableStatus.AVAILABLE },
         updatedBy,
