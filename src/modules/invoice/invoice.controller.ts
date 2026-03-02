@@ -11,12 +11,15 @@ import { InvoiceService } from './invoice.service';
 import { Invoice, PaymentMethod } from './entities/invoice.entity';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
 import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
 
 @Controller('invoice')
+@UseGuards(JwtAuthGuard)
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 

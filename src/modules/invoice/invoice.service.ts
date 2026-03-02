@@ -37,9 +37,46 @@ export class InvoiceService {
     invoice.status = InvoiceStatus.PENDING;
 
     if (data.orderId) {
+      console.log(
+        `[InvoiceService] Checking if invoice exists for orderId: ${data.orderId}`,
+      );
+      // Check if an invoice already exists for this order
+      const existingInvoice = await this.invoiceRepository.findOne({
+        where: { orderId: data.orderId },
+        relations: ['items', 'items.product', 'table', 'creator'],
+      });
+
+      if (existingInvoice) {
+        console.log(
+          `[InvoiceService] Found existing invoice with status: ${existingInvoice.status}`,
+        );
+        // Option 1: Just return the existing invoice (assuming it's pending)
+        // Optionally update the discount if it changed, but usually, we just return it
+        if (
+          existingInvoice.status === InvoiceStatus.PENDING &&
+          data.discountPercent !== undefined &&
+          data.discountPercent !== existingInvoice.discountPercent
+        ) {
+          console.log(
+            `[InvoiceService] Updating discount for existing invoice: ${data.discountPercent}`,
+          );
+          existingInvoice.discountPercent = data.discountPercent;
+          existingInvoice.discountAmount =
+            (existingInvoice.subtotal * existingInvoice.discountPercent) / 100;
+          existingInvoice.total =
+            existingInvoice.subtotal - existingInvoice.discountAmount;
+          return this.invoiceRepository.save(existingInvoice);
+        }
+        return existingInvoice;
+      }
+
+      console.log(
+        `[InvoiceService] No existing invoice found. Creating new one for orderId: ${data.orderId}`,
+      );
+
       const order = await this.orderService.findOne(data.orderId);
       invoice.orderId = data.orderId;
-      invoice.table = order.table;
+      invoice.table = order.table || null;
       invoice.subtotal = Number(order.totalPrice);
 
       // Handle discount if provided

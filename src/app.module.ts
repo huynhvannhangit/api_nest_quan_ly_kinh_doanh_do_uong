@@ -45,6 +45,7 @@ import { LoggingModule } from './modules/logging/logging.module';
 import { SeedsModule } from './database/seeds/seeds.module';
 import { RoleModule } from './modules/role/role.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 /**
  * @module AppModule
@@ -106,6 +107,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     RoleModule,
     SystemConfigModule,
     NotificationModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [
