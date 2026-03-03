@@ -152,18 +152,35 @@ export class PaymentService {
     const invoice = await this.invoiceService.findOne(invoiceId);
     if (!invoice) throw new BadRequestException('Không tìm thấy hoá đơn');
 
-    const partnerCode = process.env.MOMO_PARTNER_CODE || 'MOMO';
-    const accessKey = process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85';
-    const secretKey =
-      process.env.MOMO_SECRET_KEY || 'K951B6PE1waPeG6QMzsqPtSuqGdUby9D';
-    const apiUrl =
+    const partnerCode = (process.env.MOMO_PARTNER_CODE || 'MOMO').trim();
+    const accessKey = (process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85').trim();
+    const secretKey = (
+      process.env.MOMO_SECRET_KEY || 'K951B6PE1waDMi640xX08PD3vg6EkVlz'
+    ).trim();
+    const apiUrl = (
       process.env.MOMO_API_URL ||
-      'https://test-payment.momo.vn/v2/gateway/api/create';
-    const redirectUrl = `${process.env.API_URL || 'http://localhost:9999'}/payment/momo/momo-return`;
-    const ipnUrl =
-      process.env.MOMO_IPN_URL ||
-      `${process.env.API_URL || 'http://localhost:9999'}/payment/momo/ipn`;
-    const requestType = 'captureWallet';
+      'https://test-payment.momo.vn/v2/gateway/api/create'
+    ).trim();
+
+    const ipnUrl = (
+      process.env.MOMO_IPN_URL || 'http://localhost:9999/api/payment/momo/ipn'
+    ).trim();
+
+    // Create the MoMo redirectUrl to hit the SAME backend tunnel origin as the IPN
+    // MoMo's strict signature validator requires the redirectUrl to match the host of the IPN url
+    const matchOrigin = ipnUrl.match(/^(https?:\/\/[^/]+)/);
+    const backendOrigin = matchOrigin
+      ? matchOrigin[0]
+      : 'http://localhost:9999';
+    // Must be exactly this to satisfy MoMo signature creation
+    const redirectUrl = `${backendOrigin}/api/payment/momo/momo-return`;
+
+    // We do NOT use process.env.MOMO_RETURN_URL for the initial MoMo checkout session redirectUrl
+    // because MoMo rejects mismatched frontend/backend domains during sandbox testing.
+    // Instead we route it to backend first, then redirect inside PaymentController.momoReturn()
+    // which is already configured to redirect to FRONTEND_URL/goi-mon.
+
+    const requestType = 'payWithMethod';
 
     const orderId = `${invoiceId}_${new Date().getTime()}`;
     const requestId = orderId;
@@ -172,6 +189,11 @@ export class PaymentService {
     const extraData = '';
 
     const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
+
+    console.log('--- MOMO RAW SIGNATURE START ---');
+    console.log(rawSignature);
+    console.log('--- MOMO RAW SIGNATURE END ---');
+    console.log(`Length: ${rawSignature.length}`);
 
     const signature = crypto
       .createHmac('sha256', secretKey)
@@ -191,6 +213,10 @@ export class PaymentService {
       lang: 'vi',
       signature,
     };
+
+    console.log('--- MOMO REQUEST BODY START ---');
+    console.log(JSON.stringify(requestBody, null, 2));
+    console.log('--- MOMO REQUEST BODY END ---');
 
     try {
       const response = await axios.post<{ payUrl: string }>(
@@ -217,9 +243,11 @@ export class PaymentService {
   async handleMomoIpn(
     payload: Record<string, any>,
   ): Promise<{ resultCode: number; message: string }> {
-    const accessKey = process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85';
-    const secretKey =
-      process.env.MOMO_SECRET_KEY || 'K951B6PE1waPeG6QMzsqPtSuqGdUby9D';
+    // extracting partnerCode from payload; used in rawSignature below
+    const accessKey = (process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85').trim();
+    const secretKey = (
+      process.env.MOMO_SECRET_KEY || 'K951B6PE1waDMi640xX08PD3vg6EkVlz'
+    ).trim();
 
     console.log('Momo IPN receive', payload);
 
@@ -273,6 +301,89 @@ export class PaymentService {
     } catch (error: unknown) {
       console.error('Momo IPN error', error);
       return { resultCode: 99, message: 'Exception processing IPN' };
+    }
+  }
+
+  /**
+   * Verify MoMo return URL signature and process payment if valid.
+   * MoMo signs the return URL query params with the same HMAC-SHA256 algorithm as IPN.
+   * This is the documented approach for processing payments when the return URL is used.
+   */
+  async verifyAndProcessMomoReturn(query: Record<string, string>): Promise<{
+    isSuccess: boolean;
+    invoiceId: number;
+    message: string;
+  }> {
+    const accessKey = (process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85').trim();
+    const secretKey = (
+      process.env.MOMO_SECRET_KEY || 'K951B6PE1waDMi640xX08PD3vg6EkVlz'
+    ).trim();
+
+    const {
+      partnerCode,
+      orderId,
+      requestId,
+      amount,
+      orderInfo,
+      orderType,
+      transId,
+      resultCode,
+      message,
+      payType,
+      responseTime,
+      extraData,
+      signature: momoSignature,
+    } = query;
+
+    if (!momoSignature) {
+      return { isSuccess: false, invoiceId: 0, message: 'Thiếu chữ ký' };
+    }
+
+    // Build raw signature string (alphabetical order, same as IPN spec)
+    const rawSignature = `accessKey=${accessKey}&amount=${String(amount)}&extraData=${String(extraData || '')}&message=${String(message)}&orderId=${String(orderId)}&orderInfo=${String(orderInfo)}&orderType=${String(orderType)}&partnerCode=${String(partnerCode)}&payType=${String(payType)}&requestId=${String(requestId)}&responseTime=${String(responseTime)}&resultCode=${String(resultCode)}&transId=${String(transId)}`;
+
+    const expectedSignature = crypto
+      .createHmac('sha256', secretKey)
+      .update(rawSignature)
+      .digest('hex');
+
+    if (momoSignature !== expectedSignature) {
+      console.error('MoMo return URL signature mismatch');
+      return {
+        isSuccess: false,
+        invoiceId: 0,
+        message: 'Chữ ký không hợp lệ',
+      };
+    }
+
+    const invoiceId = parseInt(String(orderId || '').split('_')[0], 10);
+
+    if (Number(resultCode) !== 0) {
+      return {
+        isSuccess: false,
+        invoiceId,
+        message: String(message || 'Giao dịch thất bại'),
+      };
+    }
+
+    try {
+      const invoice = await this.invoiceService.findOne(invoiceId);
+      if (invoice && invoice.status !== InvoiceStatus.PAID) {
+        await this.invoiceService.processPayment(
+          invoiceId,
+          { paymentMethod: PaymentMethod.MOMO },
+          1,
+        );
+        console.log(`[MoMo Return] Payment processed for invoice ${invoiceId}`);
+      }
+      return {
+        isSuccess: true,
+        invoiceId,
+        message: String(message || 'Thanh toán thành công'),
+      };
+    } catch (error: unknown) {
+      console.error('[MoMo Return] Error processing payment:', error);
+      return { isSuccess: false, invoiceId, message: 'Lỗi xử lý thanh toán' };
     }
   }
 }

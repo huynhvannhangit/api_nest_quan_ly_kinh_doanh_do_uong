@@ -52,21 +52,21 @@ export class PaymentController {
   }
 
   @Get('momo/momo-return')
-  momoReturn(@Req() req: Request, @Res() res: Response): void {
+  async momoReturn(@Req() req: Request, @Res() res: Response): Promise<void> {
     const query = req.query as Record<string, string>;
-    const resultCode = parseInt(query.resultCode || '99', 10);
-    const orderId = String(query.orderId || '');
-    const invoiceId = orderId.split('_')[0];
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const message = String(query.message || 'Giao dịch MoMo');
 
-    if (resultCode === 0) {
+    // Verify MoMo signature and process payment (MoMo-documented approach for return URL)
+    const result = await this.paymentService.verifyAndProcessMomoReturn(query);
+
+    if (result.isSuccess) {
       res.redirect(
-        `${frontendUrl}/goi-mon?paymentId=${invoiceId}&success=true&message=${encodeURIComponent(message)}`,
+        `${frontendUrl}/goi-mon?paymentId=${result.invoiceId}&success=true&message=${encodeURIComponent(result.message)}`,
       );
     } else {
+      const invoiceId = result.invoiceId || query.orderId?.split('_')[0] || '';
       res.redirect(
-        `${frontendUrl}/goi-mon?paymentId=${invoiceId}&success=false&message=${encodeURIComponent(message)}`,
+        `${frontendUrl}/goi-mon?paymentId=${invoiceId}&success=false&message=${encodeURIComponent(result.message)}`,
       );
     }
   }
@@ -93,10 +93,7 @@ export class PaymentController {
   ): Promise<Response> {
     const payload = req.body as Record<string, string>; // Typed
     const result = await this.paymentService.handleMomoIpn(payload);
-    if (result.resultCode === 0) {
-      return res.status(HttpStatus.NO_CONTENT).send();
-    } else {
-      return res.status(HttpStatus.BAD_REQUEST).json(result);
-    }
+    // MoMo expects HTTP 200 to acknowledge IPN receipt regardless of result
+    return res.status(HttpStatus.OK).json(result);
   }
 }
