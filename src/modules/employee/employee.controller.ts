@@ -1,3 +1,4 @@
+// cspell:disable
 import {
   Controller,
   Get,
@@ -12,6 +13,7 @@ import {
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { EmployeeStatus } from './entities/employee.entity';
 import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
@@ -75,6 +77,27 @@ export class EmployeeController {
       employeeData as UpdateEmployeeDto,
       userId,
       reason,
+    );
+  }
+
+  @Patch(':id/status')
+  @HttpCode(200)
+  @Permissions(Permission.EMPLOYEE_UPDATE)
+  @ActionLog({
+    action: 'UPDATE_EMPLOYEE_STATUS',
+    module: 'EMPLOYEE',
+    description: 'Cập nhật trạng thái nhân viên (Đang làm/Nghỉ việc)',
+  })
+  updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: EmployeeStatus; reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.employeeService.updateEmployeeStatus(
+      +id,
+      body.status,
+      userId,
+      body.reason,
     );
   }
 

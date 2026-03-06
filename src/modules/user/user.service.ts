@@ -1,9 +1,14 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { User, UserStatus } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Employee, EmployeeStatus } from '../employee/entities/employee.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { EmailService } from '../../core/email/email.service';
@@ -13,6 +18,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Employee)
+    private employeeRepository: Repository<Employee>,
     private emailService: EmailService,
   ) {}
 
@@ -189,6 +196,17 @@ export class UserService {
 
     if (roleId) {
       updatePayload.role = { id: roleId };
+    }
+
+    if (updateUserDto.status === UserStatus.ACTIVE) {
+      const employee = await this.employeeRepository.findOne({
+        where: { userId: id },
+      });
+      if (employee && employee.status === EmployeeStatus.RESIGNED) {
+        throw new BadRequestException(
+          'Không thể mở khoá tài khoản này vì nhân viên liên kết đã nghỉ việc.',
+        );
+      }
     }
 
     await this.usersRepository.update(id, updatePayload);

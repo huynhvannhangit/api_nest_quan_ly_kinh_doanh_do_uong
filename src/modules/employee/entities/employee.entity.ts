@@ -1,6 +1,11 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, OneToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../user/entities/user.entity';
+
+export enum EmployeeStatus {
+  WORKING = 'WORKING',
+  RESIGNED = 'RESIGNED',
+}
 
 @Entity('employees')
 export class Employee extends BaseEntity {
@@ -28,10 +33,17 @@ export class Employee extends BaseEntity {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   salary: number;
 
-  @Column({ name: 'user_id', nullable: true })
+  @Column({
+    type: 'enum',
+    enum: EmployeeStatus,
+    default: EmployeeStatus.WORKING,
+  })
+  status: EmployeeStatus;
+
+  @Column({ name: 'user_id', nullable: true, unique: true })
   userId: number;
 
-  @ManyToOne(() => User, { nullable: true })
+  @OneToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }

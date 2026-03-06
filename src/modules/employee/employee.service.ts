@@ -5,7 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
-import { Employee } from './entities/employee.entity';
+import { UserStatus } from '../user/entities/user.entity';
+import { Employee, EmployeeStatus } from './entities/employee.entity';
 import { User } from '../user/entities/user.entity';
 
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -202,6 +203,75 @@ export class EmployeeService {
     Object.assign(employee, data);
     employee.updatedBy = updatedBy;
     return this.employeeRepository.save(employee);
+  }
+
+  async updateEmployeeStatus(
+    id: number,
+    status: EmployeeStatus,
+    updatedBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(updatedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeUpdateEmployeeStatus(id, status, updatedBy);
+    }
+
+    const oldData = await this.findOne(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.UPDATE,
+        metadata: {
+          serviceName: 'EmployeeService',
+          methodName: 'executeUpdateEmployeeStatus',
+          args: [id, status],
+          oldData,
+          newData: { status },
+        },
+        reason: reason || `Cập nhật trạng thái nhân viên ID: ${id}`,
+      },
+      updatedBy,
+    );
+  }
+
+  async executeUpdateEmployeeStatus(
+    id: number,
+    status: EmployeeStatus,
+    updatedBy: number,
+  ): Promise<Employee> {
+    const employee = await this.findOne(id);
+    employee.status = status;
+    employee.updatedBy = updatedBy;
+
+    // Save FIRST to make sure DB has the new status for UserService validation
+    const savedEmployee = await this.employeeRepository.save(employee);
+
+    // Sync associated account status
+    if (savedEmployee.userId) {
+      try {
+        await this.userService.update(savedEmployee.userId, {
+          status:
+            status === EmployeeStatus.WORKING
+              ? UserStatus.ACTIVE
+              : UserStatus.INACTIVE,
+        });
+      } catch (error) {
+        console.error(
+          'Failed to sync account status during employee update:',
+          error,
+        );
+        // We continue because the user wants employee management to be "free"
+        // and we already saved the employee status.
+      }
+    }
+
+    return savedEmployee;
   }
 
   async remove(id: number, deletedBy: number, reason?: string): Promise<any> {

@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { UserService } from '../../modules/user/user.service';
-import { User } from '../../modules/user/entities/user.entity';
+import { User, UserStatus } from '../../modules/user/entities/user.entity';
 import { Role } from '../../modules/role/entities/role.entity';
 
 import { JwtService } from '@nestjs/jwt';
@@ -44,6 +44,11 @@ export class AuthService {
   ): Promise<Partial<User> | null> {
     const user = await this.userService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new ForbiddenException(
+          'Tài khoản của bạn đã bị khoá hoặc chưa được kích hoạt. Vui lòng liên hệ quản trị viên.',
+        );
+      }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
@@ -79,8 +84,8 @@ export class AuthService {
 
   async refreshTokens(userId: number, refreshToken: string) {
     const user = await this.userService.findById(userId);
-    if (!user || !user.refreshToken)
-      throw new ForbiddenException('Access Denied');
+    if (!user || !user.refreshToken || user.status !== UserStatus.ACTIVE)
+      throw new ForbiddenException('Access Denied or Account Locked');
 
     const refreshTokenMatches = await bcrypt.compare(
       refreshToken,
