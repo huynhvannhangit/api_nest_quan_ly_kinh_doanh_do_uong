@@ -92,7 +92,7 @@ async function main() {
     if (isNestjsStarted) return;
     isNestjsStarted = true;
 
-    console.log('\n[INFO] 🚀 Starting NestJS Backend...\n');
+    console.log('\n[INFO] Starting NestJS Backend...\n');
 
     const args = process.argv.slice(2);
     let runArgs = ['start'];
