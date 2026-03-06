@@ -91,6 +91,19 @@ export class ProductController {
     return this.productService.update(+id, data, userId, reason);
   }
 
+  @Delete('bulk')
+  @ActionLog({
+    action: 'DELETE_PRODUCT_BULK',
+    module: 'PRODUCT',
+    description: 'Xóa hàng loạt sản phẩm',
+  })
+  removeMany(
+    @Body() body: { ids: number[]; reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.productService.removeMany(body.ids, userId, body?.reason);
+  }
+
   @Delete(':id')
   @ActionLog({
     action: 'DELETE_PRODUCT',

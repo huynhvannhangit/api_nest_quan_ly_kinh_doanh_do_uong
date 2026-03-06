@@ -176,4 +176,59 @@ export class ProductService {
       reason: 'Soft delete',
     });
   }
+
+  async removeMany(
+    ids: number[],
+    userId?: number,
+    reason?: string,
+  ): Promise<any> {
+    if (!userId) {
+      return this.executeRemoveMany(ids, userId);
+    }
+
+    const user = await this.userService.findById(userId);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeRemoveMany(ids, userId);
+    }
+
+    const oldData = await this.productRepository.findByIds(ids);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        metadata: {
+          serviceName: 'ProductService',
+          methodName: 'executeRemoveMany',
+          args: [ids],
+          oldData,
+        },
+        reason: reason || `Xoá hàng loạt ${ids.length} sản phẩm`,
+      },
+      userId,
+    );
+  }
+
+  async executeRemoveMany(ids: number[], userId?: number): Promise<void> {
+    const products = await this.productRepository.findByIds(ids);
+    for (const product of products) {
+      if (userId) product.deletedBy = userId;
+    }
+    await this.productRepository.save(products);
+    await this.productRepository.softRemove(products);
+
+    for (const product of products) {
+      await this.historyService.createHistory({
+        productId: product.id,
+        changedBy: userId,
+        oldData: product,
+        reason: 'Bulk soft delete',
+      });
+    }
+  }
 }

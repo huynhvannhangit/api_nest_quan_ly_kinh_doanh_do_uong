@@ -120,4 +120,46 @@ export class AreaService {
     await this.areaRepository.save(area);
     await this.areaRepository.softRemove(area);
   }
+
+  async removeMany(
+    ids: number[],
+    deletedBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(deletedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeRemoveMany(ids, deletedBy);
+    }
+
+    const oldData = await this.areaRepository.findByIds(ids);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        metadata: {
+          serviceName: 'AreaService',
+          methodName: 'executeRemoveMany',
+          args: [ids],
+          oldData,
+        },
+        reason: reason || `Xoá hàng loạt ${ids.length} khu vực`,
+      },
+      deletedBy,
+    );
+  }
+
+  async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
+    const areas = await this.areaRepository.findByIds(ids);
+    for (const area of areas) {
+      area.deletedBy = deletedBy;
+    }
+    await this.areaRepository.save(areas);
+    await this.areaRepository.softRemove(areas);
+  }
 }

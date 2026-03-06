@@ -133,4 +133,46 @@ export class TableService {
     await this.tableRepository.save(table);
     await this.tableRepository.softRemove(table);
   }
+
+  async removeMany(
+    ids: number[],
+    deletedBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(deletedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeRemoveMany(ids, deletedBy);
+    }
+
+    const oldData = await this.tableRepository.findByIds(ids);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        metadata: {
+          serviceName: 'TableService',
+          methodName: 'executeRemoveMany',
+          args: [ids],
+          oldData,
+        },
+        reason: reason || `Xoá hàng loạt ${ids.length} bàn`,
+      },
+      deletedBy,
+    );
+  }
+
+  async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
+    const tables = await this.tableRepository.findByIds(ids);
+    for (const table of tables) {
+      table.deletedBy = deletedBy;
+    }
+    await this.tableRepository.save(tables);
+    await this.tableRepository.softRemove(tables);
+  }
 }

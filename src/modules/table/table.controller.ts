@@ -59,6 +59,20 @@ export class TableController {
     return this.tableService.update(+id, tableData, userId, reason);
   }
 
+  @Delete('bulk')
+  @Permissions(Permission.TABLE_DELETE)
+  @ActionLog({
+    action: 'DELETE_TABLE_BULK',
+    module: 'TABLE',
+    description: 'Xóa hàng loạt bàn',
+  })
+  removeMany(
+    @Body() body: { ids: number[]; reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.tableService.removeMany(body.ids, userId, body?.reason);
+  }
+
   @Delete(':id')
   @Permissions(Permission.TABLE_DELETE)
   @ActionLog({

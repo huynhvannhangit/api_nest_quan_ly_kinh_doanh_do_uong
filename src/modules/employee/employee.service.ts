@@ -240,6 +240,48 @@ export class EmployeeService {
     await this.employeeRepository.softRemove(employee);
   }
 
+  async removeMany(
+    ids: number[],
+    deletedBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(deletedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN';
+
+    if (isAdmin) {
+      return this.executeRemoveMany(ids, deletedBy);
+    }
+
+    const oldData = await this.employeeRepository.findByIds(ids);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        metadata: {
+          serviceName: 'EmployeeService',
+          methodName: 'executeRemoveMany',
+          args: [ids],
+          oldData,
+        },
+        reason: reason || `Xoá hàng loạt ${ids.length} nhân viên`,
+      },
+      deletedBy,
+    );
+  }
+
+  async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
+    const employees = await this.employeeRepository.findByIds(ids);
+    for (const employee of employees) {
+      employee.deletedBy = deletedBy;
+    }
+    await this.employeeRepository.save(employees);
+    await this.employeeRepository.softRemove(employees);
+  }
+
   /**
    * Lấy danh sách user chưa bị gán cho nhân viên nào.
    * Nếu excludeEmployeeId được cung cấp, bao gồm cả user đang gán cho nhân viên đó.

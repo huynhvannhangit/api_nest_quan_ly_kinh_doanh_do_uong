@@ -59,6 +59,20 @@ export class AreaController {
     return this.areaService.update(+id, areaData, userId, reason);
   }
 
+  @Delete('bulk')
+  @Permissions(Permission.AREA_DELETE)
+  @ActionLog({
+    action: 'DELETE_AREA_BULK',
+    module: 'AREA',
+    description: 'Xóa hàng loạt khu vực',
+  })
+  removeMany(
+    @Body() body: { ids: number[]; reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.areaService.removeMany(body.ids, userId, body?.reason);
+  }
+
   @Delete(':id')
   @Permissions(Permission.AREA_DELETE)
   @ActionLog({

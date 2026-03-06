@@ -52,6 +52,19 @@ export class CategoryController {
     return this.categoryService.update(+id, data, userId);
   }
 
+  @Delete('bulk')
+  @ActionLog({
+    action: 'DELETE_CATEGORY_BULK',
+    module: 'CATEGORY',
+    description: 'Xóa hàng loạt danh mục sản phẩm',
+  })
+  removeMany(
+    @Body() body: { ids: number[] },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.categoryService.removeMany(body.ids, userId);
+  }
+
   @Delete(':id')
   @ActionLog({
     action: 'DELETE_CATEGORY',

@@ -72,6 +72,20 @@ export class EmployeeController {
     );
   }
 
+  @Delete('bulk')
+  @Permissions(Permission.EMPLOYEE_DELETE)
+  @ActionLog({
+    action: 'DELETE_EMPLOYEE_BULK',
+    module: 'EMPLOYEE',
+    description: 'Xóa hàng loạt nhân viên',
+  })
+  removeMany(
+    @Body() body: { ids: number[]; reason?: string },
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.employeeService.removeMany(body.ids, userId, body?.reason);
+  }
+
   @Delete(':id')
   @Permissions(Permission.EMPLOYEE_DELETE)
   @ActionLog({

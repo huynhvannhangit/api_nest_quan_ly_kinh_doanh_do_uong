@@ -47,4 +47,11 @@ export class CategoryService {
     await this.categoryRepository.update(id, { deletedBy });
     await this.categoryRepository.softRemove({ id } as any);
   }
+
+  async removeMany(ids: number[], deletedBy: number): Promise<void> {
+    await this.categoryRepository.update(ids, { deletedBy });
+    await this.categoryRepository.softRemove(
+      ids.map((id) => ({ id }) as any) as any,
+    );
+  }
 }
