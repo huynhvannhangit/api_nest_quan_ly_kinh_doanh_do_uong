@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { TableService } from './table.service';
 import { CreateTableDto } from './dto/create-table.dto';
@@ -21,6 +22,7 @@ export class TableController {
   constructor(private readonly tableService: TableService) {}
 
   @Post()
+  @HttpCode(201)
   @Permissions(Permission.TABLE_CREATE)
   @ActionLog({
     action: 'CREATE_TABLE',
@@ -32,18 +34,21 @@ export class TableController {
   }
 
   @Get()
+  @HttpCode(200)
   @Permissions(Permission.TABLE_VIEW)
   findAll(@Query('keyword') keyword?: string) {
     return this.tableService.findAll(keyword);
   }
 
   @Get(':id')
+  @HttpCode(200)
   @Permissions(Permission.TABLE_VIEW)
   findOne(@Param('id') id: string) {
     return this.tableService.findOne(+id);
   }
 
   @Patch(':id')
+  @HttpCode(200)
   @Permissions(Permission.TABLE_UPDATE)
   @ActionLog({
     action: 'UPDATE_TABLE',
@@ -60,6 +65,7 @@ export class TableController {
   }
 
   @Delete('bulk')
+  @HttpCode(200)
   @Permissions(Permission.TABLE_DELETE)
   @ActionLog({
     action: 'DELETE_TABLE_BULK',
@@ -74,6 +80,7 @@ export class TableController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @Permissions(Permission.TABLE_DELETE)
   @ActionLog({
     action: 'DELETE_TABLE',

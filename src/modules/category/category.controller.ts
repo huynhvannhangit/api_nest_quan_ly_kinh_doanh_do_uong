@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -19,6 +20,7 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
+  @HttpCode(201)
   @ActionLog({
     action: 'CREATE_CATEGORY',
     module: 'CATEGORY',
@@ -29,16 +31,19 @@ export class CategoryController {
   }
 
   @Get()
+  @HttpCode(200)
   findAll(@Query('keyword') keyword?: string) {
     return this.categoryService.findAll(keyword);
   }
 
   @Get(':id')
+  @HttpCode(200)
   findOne(@Param('id') id: string) {
     return this.categoryService.findOne(+id);
   }
 
   @Patch(':id')
+  @HttpCode(200)
   @ActionLog({
     action: 'UPDATE_CATEGORY',
     module: 'CATEGORY',
@@ -53,6 +58,7 @@ export class CategoryController {
   }
 
   @Delete('bulk')
+  @HttpCode(200)
   @ActionLog({
     action: 'DELETE_CATEGORY_BULK',
     module: 'CATEGORY',
@@ -66,6 +72,7 @@ export class CategoryController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @ActionLog({
     action: 'DELETE_CATEGORY',
     module: 'CATEGORY',

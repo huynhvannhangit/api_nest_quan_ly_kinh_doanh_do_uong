@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from '../../modules/user/user.service';
 import { CreateUserDto } from '../../modules/user/dto/create-user.dto';
@@ -27,6 +20,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @HttpCode(201)
   async register(@Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
     return {
@@ -38,38 +32,39 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(200)
   async login(@GetCurrentUser() user: UserPayload) {
     return this.authService.login(user);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(200)
   async logout(@GetCurrentUser('id') userId: number) {
     return this.authService.logout(userId);
   }
 
   @Get('verify-email')
+  @HttpCode(200)
   async verifyEmail(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
   }
 
   @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(200)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
   @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(200)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(200)
   async changePassword(
     @GetCurrentUser('id') userId: number,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -79,7 +74,7 @@ export class AuthController {
 
   @UseGuards(RtAuthGuard)
   @Post('refresh')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(200)
   async refreshTokens(
     @GetCurrentUser('id') userId: number,
     @GetCurrentUser('refreshToken') refreshToken: string,

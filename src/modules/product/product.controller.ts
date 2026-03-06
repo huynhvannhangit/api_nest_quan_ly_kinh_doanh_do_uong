@@ -9,6 +9,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -24,6 +25,7 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post('upload')
+  @HttpCode(200)
   @ActionLog({
     action: 'UPLOAD_IMAGE',
     module: 'PRODUCT',
@@ -54,6 +56,7 @@ export class ProductController {
   }
 
   @Post()
+  @HttpCode(201)
   @ActionLog({
     action: 'CREATE_PRODUCT',
     module: 'PRODUCT',
@@ -67,16 +70,19 @@ export class ProductController {
   }
 
   @Get()
+  @HttpCode(200)
   findAll(@Query('keyword') keyword?: string) {
     return this.productService.findAll(keyword);
   }
 
   @Get(':id')
+  @HttpCode(200)
   findOne(@Param('id') id: string) {
     return this.productService.findOne(+id);
   }
 
   @Patch(':id')
+  @HttpCode(200)
   @ActionLog({
     action: 'UPDATE_PRODUCT',
     module: 'PRODUCT',
@@ -92,6 +98,7 @@ export class ProductController {
   }
 
   @Delete('bulk')
+  @HttpCode(200)
   @ActionLog({
     action: 'DELETE_PRODUCT_BULK',
     module: 'PRODUCT',
@@ -105,6 +112,7 @@ export class ProductController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @ActionLog({
     action: 'DELETE_PRODUCT',
     module: 'PRODUCT',

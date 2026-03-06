@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Delete,
+  HttpCode,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { OrderStatus } from './entities/order.entity';
@@ -18,6 +19,7 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post()
+  @HttpCode(201)
   @ActionLog({
     action: 'CREATE_ORDER',
     module: 'ORDER',
@@ -28,11 +30,13 @@ export class OrderController {
   }
 
   @Get()
+  @HttpCode(200)
   findAll() {
     return this.orderService.findAll();
   }
 
   @Post(':id/cancel')
+  @HttpCode(200)
   @ActionLog({
     action: 'CANCEL_ORDER',
     module: 'ORDER',
@@ -43,16 +47,19 @@ export class OrderController {
   }
 
   @Get('active/table/:tableId')
+  @HttpCode(200)
   findActiveByTable(@Param('tableId') tableId: string) {
     return this.orderService.findActiveByTable(+tableId);
   }
 
   @Get(':id')
+  @HttpCode(200)
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(+id);
   }
 
   @Patch(':id/status')
+  @HttpCode(200)
   @ActionLog({
     action: 'UPDATE_ORDER_STATUS',
     module: 'ORDER',
@@ -67,6 +74,7 @@ export class OrderController {
   }
 
   @Patch(':id/add-items')
+  @HttpCode(200)
   @ActionLog({
     action: 'ADD_ORDER_ITEMS',
     module: 'ORDER',
@@ -81,6 +89,7 @@ export class OrderController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @ActionLog({
     action: 'DELETE_ORDER',
     module: 'ORDER',

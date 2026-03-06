@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { AreaService } from './area.service';
 import { CreateAreaDto } from './dto/create-area.dto';
@@ -21,6 +22,7 @@ export class AreaController {
   constructor(private readonly areaService: AreaService) {}
 
   @Post()
+  @HttpCode(201)
   @Permissions(Permission.AREA_CREATE)
   @ActionLog({
     action: 'CREATE_AREA',
@@ -32,18 +34,21 @@ export class AreaController {
   }
 
   @Get()
+  @HttpCode(200)
   @Permissions(Permission.AREA_VIEW)
   findAll(@Query('keyword') keyword?: string) {
     return this.areaService.findAll(keyword);
   }
 
   @Get(':id')
+  @HttpCode(200)
   @Permissions(Permission.AREA_VIEW)
   findOne(@Param('id') id: string) {
     return this.areaService.findOne(+id);
   }
 
   @Patch(':id')
+  @HttpCode(200)
   @Permissions(Permission.AREA_UPDATE)
   @ActionLog({
     action: 'UPDATE_AREA',
@@ -60,6 +65,7 @@ export class AreaController {
   }
 
   @Delete('bulk')
+  @HttpCode(200)
   @Permissions(Permission.AREA_DELETE)
   @ActionLog({
     action: 'DELETE_AREA_BULK',
@@ -74,6 +80,7 @@ export class AreaController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @Permissions(Permission.AREA_DELETE)
   @ActionLog({
     action: 'DELETE_AREA',

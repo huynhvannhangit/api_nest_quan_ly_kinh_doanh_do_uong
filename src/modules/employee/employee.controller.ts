@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -21,6 +22,7 @@ export class EmployeeController {
   constructor(private readonly employeeService: EmployeeService) {}
 
   @Post()
+  @HttpCode(201)
   @Permissions(Permission.EMPLOYEE_CREATE)
   @ActionLog({
     action: 'CREATE_EMPLOYEE',
@@ -32,6 +34,7 @@ export class EmployeeController {
   }
 
   @Get('available-users')
+  @HttpCode(200)
   @Permissions(Permission.EMPLOYEE_VIEW)
   getAvailableUsers(@Query('excludeEmployeeId') excludeEmployeeId?: string) {
     return this.employeeService.getAvailableUsers(
@@ -40,18 +43,21 @@ export class EmployeeController {
   }
 
   @Get()
+  @HttpCode(200)
   @Permissions(Permission.EMPLOYEE_VIEW)
   findAll(@Query('keyword') keyword?: string) {
     return this.employeeService.findAll(keyword);
   }
 
   @Get(':id')
+  @HttpCode(200)
   @Permissions(Permission.EMPLOYEE_VIEW)
   findOne(@Param('id') id: string) {
     return this.employeeService.findOne(+id);
   }
 
   @Patch(':id')
+  @HttpCode(200)
   @Permissions(Permission.EMPLOYEE_UPDATE)
   @ActionLog({
     action: 'UPDATE_EMPLOYEE',
@@ -73,6 +79,7 @@ export class EmployeeController {
   }
 
   @Delete('bulk')
+  @HttpCode(200)
   @Permissions(Permission.EMPLOYEE_DELETE)
   @ActionLog({
     action: 'DELETE_EMPLOYEE_BULK',
@@ -87,6 +94,7 @@ export class EmployeeController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @Permissions(Permission.EMPLOYEE_DELETE)
   @ActionLog({
     action: 'DELETE_EMPLOYEE',

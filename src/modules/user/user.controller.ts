@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -29,6 +30,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
+  @HttpCode(201)
   @Permissions(Permission.USER_CREATE)
   create(
     @Body() createUserDto: CreateUserDto,
@@ -38,18 +40,21 @@ export class UserController {
   }
 
   @Get()
+  @HttpCode(200)
   @Permissions(Permission.USER_VIEW)
   findAll() {
     return this.userService.findAll();
   }
 
   @Get(':id')
+  @HttpCode(200)
   @Permissions(Permission.USER_VIEW)
   findOne(@Param('id') id: string) {
     return this.userService.findById(+id);
   }
 
   @Patch(':id')
+  @HttpCode(200)
   @Permissions(Permission.USER_UPDATE)
   update(
     @Param('id') id: string,
@@ -60,12 +65,14 @@ export class UserController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @Permissions(Permission.USER_DELETE)
   remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
     return this.userService.remove(+id, userId);
   }
 
   @Post(':id/avatar')
+  @HttpCode(200)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({

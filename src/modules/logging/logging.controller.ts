@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, HttpCode } from '@nestjs/common';
 import { LoggingService } from './logging.service';
 import { QueryLogDto } from './dto/query-log.dto';
 import { Permissions } from '../../core/decorators/permissions.decorator';
@@ -10,6 +10,7 @@ export class LoggingController {
   constructor(private readonly loggingService: LoggingService) {}
 
   @Get()
+  @HttpCode(200)
   @Permissions(Permission.LOG_VIEW)
   @ActionLog({
     action: 'VIEW_LOGS',

@@ -7,6 +7,7 @@ import {
   Get,
   Res,
   HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import type { Request, Response } from 'express';
@@ -16,6 +17,7 @@ export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('vnpay/create-url')
+  @HttpCode(200)
   async createVnPayUrl(
     @Body('invoiceId') invoiceId: number,
     @Req() req: Request,
@@ -29,6 +31,7 @@ export class PaymentController {
   }
 
   @Get('vnpay/vnpay-return')
+  @HttpCode(200)
   async vnpayReturn(@Req() req: Request, @Res() res: Response): Promise<void> {
     const query = req.query as Record<string, string>; // Typed
     try {
@@ -52,6 +55,7 @@ export class PaymentController {
   }
 
   @Get('momo/momo-return')
+  @HttpCode(200)
   async momoReturn(@Req() req: Request, @Res() res: Response): Promise<void> {
     const query = req.query as Record<string, string>;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -72,6 +76,7 @@ export class PaymentController {
   }
 
   @Get('vnpay/vnpay-ipn')
+  @HttpCode(200)
   async vnpayIpn(@Req() req: Request, @Res() res: Response): Promise<Response> {
     const query = req.query as Record<string, string>; // Typed
     const result = await this.paymentService.handleIpn(query);
@@ -79,6 +84,7 @@ export class PaymentController {
   }
 
   @Post('momo/create-url')
+  @HttpCode(200)
   async createMomoUrl(
     @Body('invoiceId') invoiceId: number,
   ): Promise<{ url: string }> {
@@ -87,6 +93,7 @@ export class PaymentController {
   }
 
   @Post('momo/ipn')
+  @HttpCode(200)
   async handleMomoIpn(
     @Req() req: Request,
     @Res() res: Response,

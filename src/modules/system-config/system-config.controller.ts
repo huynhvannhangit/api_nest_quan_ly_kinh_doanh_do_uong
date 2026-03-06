@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -24,11 +25,13 @@ export class SystemConfigController {
   constructor(private readonly systemConfigService: SystemConfigService) {}
 
   @Get()
+  @HttpCode(200)
   async get() {
     return await this.systemConfigService.get();
   }
 
   @Patch()
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async update(@Body() updateDto: UpdateSystemConfigDto) {
@@ -36,6 +39,7 @@ export class SystemConfigController {
   }
 
   @Post('logo')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @UseInterceptors(

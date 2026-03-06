@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { AiAssistantService } from './ai-assistant.service';
 import { AiChatDto } from './dto/ai-chat.dto';
 import { Permissions } from '../../core/decorators/permissions.decorator';
@@ -11,6 +11,7 @@ export class AiAssistantController {
   constructor(private readonly aiAssistantService: AiAssistantService) {}
 
   @Post('chat')
+  @HttpCode(200)
   @Permissions(Permission.AI_ASSISTANT_CHAT)
   chat(@Body() data: AiChatDto, @GetCurrentUser() user: UserPayload) {
     return this.aiAssistantService.chat(data.message, data.history, user.role);

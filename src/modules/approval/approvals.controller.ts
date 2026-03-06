@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import { ApprovalsService } from './approvals.service';
 import { CreateApprovalDto } from './dto/create-approval.dto';
@@ -21,6 +22,7 @@ export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
 
   @Post()
+  @HttpCode(201)
   @Permissions(Permission.APPROVAL_CREATE)
   @ActionLog({
     action: 'CREATE_APPROVAL',
@@ -32,18 +34,21 @@ export class ApprovalsController {
   }
 
   @Get()
+  @HttpCode(200)
   @Permissions(Permission.APPROVAL_VIEW)
   findAll(@Query('keyword') keyword?: string) {
     return this.approvalsService.findAll(keyword);
   }
 
   @Get(':id')
+  @HttpCode(200)
   @Permissions(Permission.APPROVAL_VIEW)
   findOne(@Param('id') id: string) {
     return this.approvalsService.findOne(+id);
   }
 
   @Patch(':id/review')
+  @HttpCode(200)
   @Permissions(Permission.APPROVAL_MANAGE)
   @ActionLog({
     action: 'REVIEW_APPROVAL',
@@ -59,6 +64,7 @@ export class ApprovalsController {
   }
 
   @Delete(':id')
+  @HttpCode(200)
   @Permissions(Permission.APPROVAL_DELETE)
   @ActionLog({
     action: 'DELETE_APPROVAL',
