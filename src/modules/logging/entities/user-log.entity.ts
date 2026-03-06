@@ -3,6 +3,7 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('user_logs')
@@ -11,12 +12,15 @@ export class UserLog {
   id: number;
 
   @Column({ nullable: true, name: 'user_id' })
+  @Index()
   userId: number;
 
   @Column()
+  @Index()
   action: string;
 
   @Column({ nullable: true })
+  @Index()
   module: string;
 
   @Column({ type: 'text', nullable: true })
@@ -32,5 +36,6 @@ export class UserLog {
   metadata: any;
 
   @CreateDateColumn({ name: 'created_at' })
+  @Index()
   createdAt: Date;
 }

@@ -57,27 +57,39 @@ export class StatisticsService {
   ) {}
 
   async getOverview() {
-    const totalRevenueResult = await this.invoiceRepository
-      .createQueryBuilder('invoice')
-      .where('invoice.status = :status', { status: InvoiceStatus.PAID })
-      .select('SUM(invoice.total)', 'total')
-      .getRawOne<{ total: string | null }>();
-
-    const totalOrders = await this.invoiceRepository.count();
-    const paidOrders = await this.invoiceRepository.count({
-      where: { status: InvoiceStatus.PAID },
-    });
-
-    const totalAreas = await this.areaRepository.count();
-    const totalTables = await this.tableRepository.count();
-    const totalCategories = await this.categoryRepository.count();
-    const totalProducts = await this.productRepository.count();
-    const totalEmployees = await this.employeeRepository.count();
-    const totalOrdersCount = await this.orderRepository.count();
-    const totalUsers = await this.userRepository.count();
-    const pendingApprovals = await this.approvalRepository.count({
-      where: { status: ApprovalStatus.PENDING },
-    });
+    const [
+      totalRevenueResult,
+      totalOrders,
+      paidOrders,
+      totalAreas,
+      totalTables,
+      totalCategories,
+      totalProducts,
+      totalEmployees,
+      totalOrdersCount,
+      totalUsers,
+      pendingApprovals,
+    ] = await Promise.all([
+      this.invoiceRepository
+        .createQueryBuilder('invoice')
+        .where('invoice.status = :status', { status: InvoiceStatus.PAID })
+        .select('SUM(invoice.total)', 'total')
+        .getRawOne<{ total: string | null }>(),
+      this.invoiceRepository.count(),
+      this.invoiceRepository.count({
+        where: { status: InvoiceStatus.PAID },
+      }),
+      this.areaRepository.count(),
+      this.tableRepository.count(),
+      this.categoryRepository.count(),
+      this.productRepository.count(),
+      this.employeeRepository.count(),
+      this.orderRepository.count(),
+      this.userRepository.count(),
+      this.approvalRepository.count({
+        where: { status: ApprovalStatus.PENDING },
+      }),
+    ]);
 
     return {
       totalRevenue: parseFloat(totalRevenueResult?.total || '0'),
