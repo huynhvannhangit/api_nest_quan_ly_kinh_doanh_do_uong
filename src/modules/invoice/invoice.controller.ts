@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { InvoiceService } from './invoice.service';
 import { Invoice, PaymentMethod } from './entities/invoice.entity';
@@ -41,8 +42,8 @@ export class InvoiceController {
   }
 
   @Get()
-  findAll(): Promise<Invoice[]> {
-    return this.invoiceService.findAll();
+  findAll(@Query('keyword') keyword?: string): Promise<Invoice[]> {
+    return this.invoiceService.findAll(keyword);
   }
 
   @Get(':id')

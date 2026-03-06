@@ -23,10 +23,21 @@ export class TableService {
     return this.tableRepository.save(table);
   }
 
-  async findAll(): Promise<Table[]> {
-    return this.tableRepository.find({
-      relations: ['area', 'creator', 'updater'],
-    });
+  async findAll(keyword?: string): Promise<Table[]> {
+    const kw = keyword?.trim();
+    if (!kw) {
+      return this.tableRepository.find({
+        relations: ['area', 'creator', 'updater'],
+      });
+    }
+    return this.tableRepository
+      .createQueryBuilder('table')
+      .leftJoinAndSelect('table.area', 'area')
+      .leftJoinAndSelect('table.creator', 'creator')
+      .leftJoinAndSelect('table.updater', 'updater')
+      .where('table.tableNumber LIKE :kw', { kw: `%${kw}%` })
+      .orWhere('area.name LIKE :kw', { kw: `%${kw}%` })
+      .getMany();
   }
 
   async findOne(id: number): Promise<Table> {

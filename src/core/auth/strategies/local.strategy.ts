@@ -21,8 +21,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Device ID is required in request body');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const user = await this.authService.validateUser(email, password, deviceId);
+    const user = await this.authService.validateUser(email, password);
     if (!user) {
       throw new UnauthorizedException();
     }

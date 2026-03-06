@@ -37,11 +37,22 @@ export class ApprovalsService {
     return this.approvalRepository.save(approval);
   }
 
-  async findAll(): Promise<ApprovalRequest[]> {
-    return this.approvalRepository.find({
-      relations: ['requestedBy', 'reviewedBy'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(keyword?: string): Promise<ApprovalRequest[]> {
+    const kw = keyword?.trim();
+    if (!kw) {
+      return this.approvalRepository.find({
+        relations: ['requestedBy', 'reviewedBy'],
+        order: { createdAt: 'DESC' },
+      });
+    }
+    return this.approvalRepository
+      .createQueryBuilder('approval')
+      .leftJoinAndSelect('approval.requestedBy', 'requestedBy')
+      .leftJoinAndSelect('approval.reviewedBy', 'reviewedBy')
+      .where('approval.reason LIKE :kw', { kw: `%${kw}%` })
+      .orWhere('requestedBy.fullName LIKE :kw', { kw: `%${kw}%` })
+      .orderBy('approval.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: number): Promise<ApprovalRequest> {

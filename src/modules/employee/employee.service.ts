@@ -114,10 +114,19 @@ export class EmployeeService {
     }
   }
 
-  async findAll(): Promise<Employee[]> {
-    return this.employeeRepository.find({
-      relations: ['user'],
-    });
+  async findAll(keyword?: string): Promise<Employee[]> {
+    const kw = keyword?.trim();
+    if (!kw) {
+      return this.employeeRepository.find({
+        relations: ['user'],
+      });
+    }
+    return this.employeeRepository
+      .createQueryBuilder('employee')
+      .leftJoinAndSelect('employee.user', 'user')
+      .where('employee.fullName LIKE :kw', { kw: `%${kw}%` })
+      .orWhere('employee.phone LIKE :kw', { kw: `%${kw}%` })
+      .getMany();
   }
 
   async findOne(id: number): Promise<Employee> {

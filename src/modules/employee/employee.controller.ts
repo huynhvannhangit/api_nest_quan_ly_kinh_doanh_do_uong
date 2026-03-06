@@ -41,8 +41,8 @@ export class EmployeeController {
 
   @Get()
   @Permissions(Permission.EMPLOYEE_VIEW)
-  findAll() {
-    return this.employeeService.findAll();
+  findAll(@Query('keyword') keyword?: string) {
+    return this.employeeService.findAll(keyword);
   }
 
   @Get(':id')

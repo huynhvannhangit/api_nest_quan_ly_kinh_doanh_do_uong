@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Area } from './entities/area.entity';
 import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
@@ -23,8 +23,10 @@ export class AreaService {
     return this.areaRepository.save(area);
   }
 
-  async findAll(): Promise<Area[]> {
+  async findAll(keyword?: string): Promise<Area[]> {
+    const kw = keyword?.trim();
     return this.areaRepository.find({
+      where: kw ? { name: ILike(`%${kw}%`) } : undefined,
       relations: ['tables', 'creator', 'updater'],
     });
   }

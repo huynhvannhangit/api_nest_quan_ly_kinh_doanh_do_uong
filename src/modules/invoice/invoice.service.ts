@@ -29,7 +29,7 @@ export class InvoiceService {
   ) {}
 
   async create(data: Partial<Invoice>, createdBy: number): Promise<Invoice> {
-    const invoiceNumber = `INV-${Date.now()}`;
+    const invoiceNumber = `HD-${Date.now()}`;
     const invoice = new Invoice();
     invoice.invoiceNumber = invoiceNumber;
     invoice.createdBy = createdBy;
@@ -104,13 +104,23 @@ export class InvoiceService {
     return this.invoiceRepository.save(invoice);
   }
 
-  async findAll(): Promise<Invoice[]> {
-    return this.invoiceRepository.find({
-      relations: ['items', 'items.product', 'table', 'creator'],
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+  async findAll(keyword?: string): Promise<Invoice[]> {
+    const kw = keyword?.trim();
+    if (!kw) {
+      return this.invoiceRepository.find({
+        relations: ['items', 'items.product', 'table', 'creator'],
+        order: { createdAt: 'DESC' },
+      });
+    }
+    return this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .leftJoinAndSelect('invoice.items', 'items')
+      .leftJoinAndSelect('items.product', 'product')
+      .leftJoinAndSelect('invoice.table', 'table')
+      .leftJoinAndSelect('invoice.creator', 'creator')
+      .where('invoice.invoiceNumber LIKE :kw', { kw: `%${kw}%` })
+      .orderBy('invoice.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: number): Promise<Invoice> {

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ApprovalsService } from './approvals.service';
 import { CreateApprovalDto } from './dto/create-approval.dto';
@@ -32,8 +33,8 @@ export class ApprovalsController {
 
   @Get()
   @Permissions(Permission.APPROVAL_VIEW)
-  findAll() {
-    return this.approvalsService.findAll();
+  findAll(@Query('keyword') keyword?: string) {
+    return this.approvalsService.findAll(keyword);
   }
 
   @Get(':id')

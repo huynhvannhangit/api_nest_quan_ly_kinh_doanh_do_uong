@@ -41,16 +41,9 @@ export class AuthService {
   async validateUser(
     email: string,
     pass: string,
-    deviceId: string,
   ): Promise<Partial<User> | null> {
     const user = await this.userService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
-      // Update deviceId on every login (allow login from any device)
-      if (user.deviceId !== deviceId) {
-        await this.userService.update(user.id, { deviceId });
-        user.deviceId = deviceId;
-      }
-
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;

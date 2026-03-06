@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { AreaService } from './area.service';
 import { CreateAreaDto } from './dto/create-area.dto';
@@ -32,8 +33,8 @@ export class AreaController {
 
   @Get()
   @Permissions(Permission.AREA_VIEW)
-  findAll() {
-    return this.areaService.findAll();
+  findAll(@Query('keyword') keyword?: string) {
+    return this.areaService.findAll(keyword);
   }
 
   @Get(':id')

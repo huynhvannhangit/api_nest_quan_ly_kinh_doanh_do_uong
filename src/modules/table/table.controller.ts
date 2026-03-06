@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { TableService } from './table.service';
 import { CreateTableDto } from './dto/create-table.dto';
@@ -32,8 +33,8 @@ export class TableController {
 
   @Get()
   @Permissions(Permission.TABLE_VIEW)
-  findAll() {
-    return this.tableService.findAll();
+  findAll(@Query('keyword') keyword?: string) {
+    return this.tableService.findAll(keyword);
   }
 
   @Get(':id')

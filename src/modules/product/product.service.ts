@@ -38,10 +38,21 @@ export class ProductService {
     return savedProduct;
   }
 
-  async findAll(): Promise<Product[]> {
-    return this.productRepository.find({
-      relations: ['category', 'creator', 'updater'],
-    });
+  async findAll(keyword?: string): Promise<Product[]> {
+    const kw = keyword?.trim();
+    if (!kw) {
+      return this.productRepository.find({
+        relations: ['category', 'creator', 'updater'],
+      });
+    }
+    return this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.creator', 'creator')
+      .leftJoinAndSelect('product.updater', 'updater')
+      .where('product.name LIKE :kw', { kw: `%${kw}%` })
+      .orWhere('category.name LIKE :kw', { kw: `%${kw}%` })
+      .getMany();
   }
 
   async findOne(id: number): Promise<Product> {
