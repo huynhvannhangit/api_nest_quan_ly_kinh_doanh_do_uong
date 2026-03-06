@@ -77,6 +77,15 @@ export class UserService {
     return user || undefined;
   }
 
+  async findWithPasswordById(id: number): Promise<User | undefined> {
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.id = :id', { id })
+      .getOne();
+    return user || undefined;
+  }
+
   async updateRefreshToken(
     id: number,
     refreshToken: string | null,

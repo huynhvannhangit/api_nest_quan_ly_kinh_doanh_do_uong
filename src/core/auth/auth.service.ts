@@ -181,7 +181,7 @@ export class AuthService {
   }
 
   async changePassword(userId: number, changeDto: ChangePasswordDto) {
-    const user = await this.userService.findById(userId);
+    const user = await this.userService.findWithPasswordById(userId);
     if (!user) throw new NotFoundException('User not found');
 
     const passwordMatches = await bcrypt.compare(
