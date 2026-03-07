@@ -16,6 +16,9 @@ import {
 } from '../approval/entities/approval-request.entity';
 import { StatisticsQueryDto } from './dto/statistics-query.dto';
 import dayjs from 'dayjs';
+import isoWeek from 'dayjs/plugin/isoWeek';
+
+dayjs.extend(isoWeek);
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
 import { MESSAGES } from '../../common/constants/messages.constant';
@@ -134,7 +137,7 @@ export class StatisticsService {
       .addSelect('SUM(invoice.total)', 'revenue')
       .addSelect('COUNT(invoice.id)', 'count')
       .groupBy('date')
-      .orderBy('date', 'DESC')
+      .orderBy('date', 'ASC')
       .getRawMany<RawRevenue>();
 
     return revenueData.map((item) => ({
@@ -166,7 +169,19 @@ export class StatisticsService {
       const endDisplay = query.endDate
         ? dayjs(query.endDate).format('DD/MM/YYYY')
         : 'Tất cả';
-      sheet.addRow([`Từ ngày: ${startDisplay} - Đến ngày: ${endDisplay}`]);
+
+      let filterText = '';
+      if (
+        query.startDate &&
+        query.endDate &&
+        query.startDate === query.endDate
+      ) {
+        filterText = `Ngày: ${startDisplay}`;
+      } else {
+        filterText = `Từ ngày: ${startDisplay} - Đến ngày: ${endDisplay}`;
+      }
+
+      sheet.addRow([filterText]);
       sheet.addRow([]);
 
       // Revenue Table
@@ -180,13 +195,29 @@ export class StatisticsService {
 
       revenueData.forEach((item) => {
         let displayDate = item.date;
-        const d = dayjs(item.date);
-        if (d.isValid()) {
-          if (query.groupBy === 'month') {
-            displayDate = d.format('MM/YYYY');
-          } else if (query.groupBy === 'week') {
-            displayDate = `Tuần ${d.format('ww/YYYY')}`;
-          } else {
+        if (query.groupBy === 'month') {
+          const [year, month] = item.date.split('-');
+          displayDate = `Tháng ${parseInt(month)} năm ${year}`;
+        } else if (query.groupBy === 'week') {
+          const [year, weekNum] = item.date.split('-');
+          const weekStart = dayjs()
+            .year(parseInt(year))
+            .isoWeek(parseInt(weekNum))
+            .startOf('isoWeek');
+          const month = weekStart.month() + 1;
+          let count = 0;
+          let temp = weekStart.clone().startOf('month');
+          while (temp.isoWeekday() !== 1) {
+            temp = temp.add(1, 'day');
+          }
+          while (temp.isBefore(weekStart) || temp.isSame(weekStart, 'day')) {
+            count++;
+            temp = temp.add(1, 'week');
+          }
+          displayDate = `Tháng ${month} Tuần thứ ${count} (Tuần ${weekNum}/${year})`;
+        } else {
+          const d = dayjs(item.date);
+          if (d.isValid()) {
             displayDate = d.format('DD/MM/YYYY');
           }
         }
@@ -215,9 +246,37 @@ export class StatisticsService {
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
+
+      const typeText =
+        query.groupBy === 'month'
+          ? 'tháng'
+          : query.groupBy === 'week'
+            ? 'tuần'
+            : 'ngày';
+
+      let dateText = '';
+      const start = query.startDate ? dayjs(query.startDate) : null;
+      const end = query.endDate ? dayjs(query.endDate) : null;
+
+      if (start && end) {
+        if (start.isSame(end, 'day')) {
+          dateText = start.format('DD-MM-YYYY');
+        } else {
+          dateText = `${start.format('DD-MM-YYYY')} đến ${end.format('DD-MM-YYYY')}`;
+        }
+      } else if (start) {
+        dateText = start.format('DD-MM-YYYY');
+      } else {
+        dateText = dayjs().format('DD-MM-YYYY');
+      }
+
+      const filename = encodeURIComponent(
+        `thống kê doanh thu ${typeText} ${dateText}.xlsx`,
+      );
+
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename=bao-cao-${dayjs().format('YYYYMMDDHHmmss')}.xlsx`,
+        `attachment; filename*=UTF-8''${filename}`,
       );
 
       await workbook.xlsx.write(res);
