@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsEmail } from 'class-validator';
+import { IsString, IsOptional, IsEmail, ValidateIf } from 'class-validator';
+import { MESSAGES } from '../../../common/constants/messages.constant';
 
 export class UpdateSystemConfigDto {
   @IsString()
@@ -9,7 +10,10 @@ export class UpdateSystemConfigDto {
   @IsOptional()
   logoUrl?: string;
 
-  @IsEmail()
+  @ValidateIf(
+    (o: UpdateSystemConfigDto) => o.email !== undefined && o.email !== '',
+  )
+  @IsEmail({}, { message: MESSAGES.INVALID_EMAIL })
   @IsOptional()
   email?: string;
 

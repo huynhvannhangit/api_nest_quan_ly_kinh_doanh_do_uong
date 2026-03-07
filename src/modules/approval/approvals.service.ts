@@ -8,6 +8,7 @@ import {
   ApprovalStatus,
 } from './entities/approval-request.entity';
 import { NotificationService } from '../notification/notification.service';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 interface ApprovalMetadata {
   serviceName: string;
@@ -61,7 +62,7 @@ export class ApprovalsService {
       relations: ['requestedBy', 'reviewedBy'],
     });
     if (!approval) {
-      throw new NotFoundException(`Approval request with ID ${id} not found`);
+      throw new NotFoundException(MESSAGES.APPROVAL_NOT_FOUND);
     }
     return approval;
   }

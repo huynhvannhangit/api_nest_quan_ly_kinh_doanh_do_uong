@@ -17,6 +17,7 @@ import { Permission } from '../../common/enums/permission.enum';
 import { EmailService } from '../email/email.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 export interface UserPayload {
   sub: number;
@@ -45,9 +46,7 @@ export class AuthService {
     const user = await this.userService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
       if (user.status !== UserStatus.ACTIVE) {
-        throw new ForbiddenException(
-          'Tài khoản của bạn đã bị khoá hoặc chưa được kích hoạt. Vui lòng liên hệ quản trị viên.',
-        );
+        throw new ForbiddenException(MESSAGES.USER_LOCKED);
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
@@ -85,13 +84,14 @@ export class AuthService {
   async refreshTokens(userId: number, refreshToken: string) {
     const user = await this.userService.findById(userId);
     if (!user || !user.refreshToken || user.status !== UserStatus.ACTIVE)
-      throw new ForbiddenException('Access Denied or Account Locked');
+      throw new ForbiddenException(MESSAGES.ACCESS_DENIED_LOCKED);
 
     const refreshTokenMatches = await bcrypt.compare(
       refreshToken,
       user.refreshToken,
     );
-    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
+    if (!refreshTokenMatches)
+      throw new ForbiddenException(MESSAGES.ACCESS_DENIED);
 
     const roleName = typeof user.role === 'string' ? user.role : user.role.name;
 
@@ -145,7 +145,7 @@ export class AuthService {
   async verifyEmail(token: string) {
     const user = await this.userService.verifyEmail(token);
     if (!user) {
-      throw new BadRequestException('Invalid or expired verification token');
+      throw new BadRequestException(MESSAGES.INVALID_VERIFICATION_TOKEN);
     }
     return { message: 'Email verified successfully' };
   }
@@ -178,7 +178,7 @@ export class AuthService {
   async resetPassword(resetDto: ResetPasswordDto) {
     const user = await this.userService.findByResetToken(resetDto.token);
     if (!user) {
-      throw new BadRequestException('Invalid or expired reset token');
+      throw new BadRequestException(MESSAGES.INVALID_RESET_TOKEN);
     }
 
     await this.userService.updatePassword(user.id, resetDto.newPassword);
@@ -187,14 +187,14 @@ export class AuthService {
 
   async changePassword(userId: number, changeDto: ChangePasswordDto) {
     const user = await this.userService.findWithPasswordById(userId);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
 
     const passwordMatches = await bcrypt.compare(
       changeDto.oldPassword,
       user.password,
     );
     if (!passwordMatches) {
-      throw new BadRequestException('Old password does not match');
+      throw new BadRequestException(MESSAGES.INVALID_OLD_PASSWORD);
     }
 
     await this.userService.updatePassword(userId, changeDto.newPassword);

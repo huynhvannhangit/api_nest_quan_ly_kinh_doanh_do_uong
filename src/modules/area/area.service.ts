@@ -1,21 +1,39 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
+import { CreateAreaDto } from './dto/create-area.dto';
+import { UpdateAreaDto } from './dto/update-area.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, Repository, Not, In } from 'typeorm';
 import { Area } from './entities/area.entity';
+import { Table, TableStatus } from '../table/entities/table.entity';
 import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class AreaService {
   constructor(
     @InjectRepository(Area)
     private readonly areaRepository: Repository<Area>,
+    @InjectRepository(Table)
+    private readonly tableRepository: Repository<Table>,
     private readonly userService: UserService,
     private readonly approvalsService: ApprovalsService,
   ) {}
 
-  async create(data: any, createdBy: number): Promise<Area> {
+  async create(data: CreateAreaDto, createdBy: number): Promise<Area> {
+    const existingArea = await this.areaRepository.findOne({
+      where: { name: data.name },
+    });
+    if (existingArea) {
+      throw new ConflictException(MESSAGES.AREA_NAME_EXISTS);
+    }
+
     const area = new Area();
     Object.assign(area, data);
     area.createdBy = createdBy;
@@ -37,14 +55,14 @@ export class AreaService {
       relations: ['tables', 'creator', 'updater'],
     });
     if (!area) {
-      throw new NotFoundException(`Area with ID ${id} not found`);
+      throw new NotFoundException(MESSAGES.AREA_NOT_FOUND);
     }
     return area;
   }
 
   async update(
     id: number,
-    data: any,
+    data: UpdateAreaDto,
     updatedBy: number,
     reason?: string,
   ): Promise<any> {
@@ -69,7 +87,7 @@ export class AreaService {
           methodName: 'executeUpdate',
           args: [id, data],
           oldData,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           newData: data,
         },
         reason: reason || `Cập nhật khu vực ID: ${id}`,
@@ -78,7 +96,23 @@ export class AreaService {
     );
   }
 
-  async executeUpdate(id: number, data: any, updatedBy: number): Promise<Area> {
+  async executeUpdate(
+    id: number,
+    data: UpdateAreaDto,
+    updatedBy: number,
+  ): Promise<Area> {
+    if (data.name) {
+      const existingArea = await this.areaRepository.findOne({
+        where: {
+          name: data.name,
+          id: Not(id),
+        },
+      });
+      if (existingArea) {
+        throw new ConflictException(MESSAGES.AREA_NAME_EXISTS);
+      }
+    }
+
     const area = await this.findOne(id);
     Object.assign(area, data);
     area.updatedBy = updatedBy;
@@ -116,6 +150,23 @@ export class AreaService {
 
   async executeRemove(id: number, deletedBy: number): Promise<void> {
     const area = await this.findOne(id);
+
+    const activeTables = await this.tableRepository.count({
+      where: {
+        areaId: id,
+        status: TableStatus.OCCUPIED,
+      },
+    });
+
+    if (activeTables > 0) {
+      throw new BadRequestException(MESSAGES.AREA_HAS_ACTIVE_TABLES);
+    }
+
+    await this.tableRepository.update(
+      { areaId: id },
+      { status: TableStatus.MAINTENANCE },
+    );
+
     area.deletedBy = deletedBy;
     await this.areaRepository.save(area);
     await this.areaRepository.softRemove(area);
@@ -156,6 +207,23 @@ export class AreaService {
 
   async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
     const areas = await this.areaRepository.findByIds(ids);
+
+    const activeTables = await this.tableRepository.count({
+      where: {
+        areaId: In(ids),
+        status: TableStatus.OCCUPIED,
+      },
+    });
+
+    if (activeTables > 0) {
+      throw new BadRequestException(MESSAGES.AREA_HAS_ACTIVE_TABLES);
+    }
+
+    await this.tableRepository.update(
+      { areaId: In(ids) },
+      { status: TableStatus.MAINTENANCE },
+    );
+
     for (const area of areas) {
       area.deletedBy = deletedBy;
     }

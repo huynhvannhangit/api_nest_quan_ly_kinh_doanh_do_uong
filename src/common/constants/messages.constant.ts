@@ -1,71 +1,90 @@
 /**
  * Message Constants
- * Format: "Tiếng Việt | ENGLISH_CODE"
+ * Chỉ chứa câu thông báo Tiếng Việt
  */
 
 export const MESSAGES = {
   // Common
-  SUCCESS: 'Thành công | SUCCESS',
-  CREATED: 'Tạo thành công | CREATED',
-  UPDATED: 'Cập nhật thành công | UPDATED',
-  DELETED: 'Xoá thành công | DELETED',
-  NOT_FOUND: 'Không tìm thấy | NOT_FOUND',
+  SUCCESS: 'Thành công',
+  CREATED: 'Tạo thành công',
+  UPDATED: 'Cập nhật thành công',
+  DELETED: 'Xoá thành công',
+  NOT_FOUND: 'Không tìm thấy',
 
   // Auth
-  LOGIN_SUCCESS: 'Đăng nhập thành công | LOGIN_SUCCESS',
-  LOGOUT_SUCCESS: 'Đăng xuất thành công | LOGOUT_SUCCESS',
-  REGISTER_SUCCESS: 'Đăng ký thành công | REGISTER_SUCCESS',
-  INVALID_CREDENTIALS: 'Email hoặc mật khẩu không đúng | INVALID_CREDENTIALS',
-  NOT_AUTHENTICATED: 'Bạn chưa đăng nhập | NOT_AUTHENTICATED',
-  NOT_AUTHORIZED: 'Bạn không có quyền thực thi | NOT_AUTHORIZED',
-  TOKEN_EXPIRED: 'Phiên đăng nhập đã hết hạn | TOKEN_EXPIRED',
-  INVALID_TOKEN: 'Token không hợp lệ | INVALID_TOKEN',
+  LOGIN_SUCCESS: 'Đăng nhập thành công',
+  LOGOUT_SUCCESS: 'Đăng xuất thành công',
+  REGISTER_SUCCESS: 'Đăng ký thành công',
+  INVALID_CREDENTIALS: 'Email hoặc mật khẩu không đúng',
+  NOT_AUTHENTICATED: 'Bạn chưa đăng nhập',
+  NOT_AUTHORIZED: 'Bạn không có quyền thực thi',
+  TOKEN_EXPIRED: 'Phiên đăng nhập đã hết hạn',
+  INVALID_TOKEN: 'Token không hợp lệ',
+  DEVICE_ID_REQUIRED: 'Yêu cầu Device ID',
+  ACCESS_DENIED: 'Từ chối truy cập',
+  ACCESS_DENIED_LOCKED: 'Từ chối truy cập hoặc bị khóa',
+  INVALID_VERIFICATION_TOKEN: 'Token xác thực không hợp lệ',
+  INVALID_RESET_TOKEN: 'Token đặt lại mật khẩu không hợp lệ',
+  TOKEN_MALFORMED: 'Token không đúng định dạng',
 
   // User
-  USER_NOT_FOUND: 'Không tìm thấy người dùng | USER_NOT_FOUND',
-  EMAIL_ALREADY_EXISTS: 'Email đã tồn tại | EMAIL_ALREADY_EXISTS',
-  USER_LOCKED: 'Tài khoản đã bị khoá | USER_LOCKED',
-  PASSWORD_CHANGED: 'Đổi mật khẩu thành công | PASSWORD_CHANGED',
-  INVALID_OLD_PASSWORD: 'Mật khẩu cũ không đúng | INVALID_OLD_PASSWORD',
+  USER_NOT_FOUND: 'Không tìm thấy người dùng',
+  EMAIL_ALREADY_EXISTS: 'Email đã tồn tại',
+  USER_LOCKED: 'Tài khoản đã bị khoá',
+  PASSWORD_CHANGED: 'Đổi mật khẩu thành công',
+  INVALID_OLD_PASSWORD: 'Mật khẩu cũ không đúng',
 
   // Employee
-  EMPLOYEE_NOT_FOUND: 'Không tìm thấy nhân viên | EMPLOYEE_NOT_FOUND',
-  EMPLOYEE_CODE_EXISTS: 'Mã nhân viên đã tồn tại | EMPLOYEE_CODE_EXISTS',
+  EMPLOYEE_NOT_FOUND: 'Không tìm thấy nhân viên',
+  EMPLOYEE_CODE_EXISTS: 'Mã nhân viên đã tồn tại',
+  EMPLOYEE_AGE_INVALID: 'Nhân viên phải từ đủ 18 tuổi',
 
   // Area
-  AREA_NOT_FOUND: 'Không tìm thấy khu vực | AREA_NOT_FOUND',
+  AREA_NOT_FOUND: 'Không tìm thấy khu vực',
+  AREA_NAME_EXISTS: 'Khu vực với tên này đã tồn tại',
+  AREA_HAS_ACTIVE_TABLES: 'Không thể xóa khu vực đang có bàn hoạt động',
 
   // Table
-  TABLE_NOT_FOUND: 'Không tìm thấy bàn | TABLE_NOT_FOUND',
-  TABLE_OCCUPIED: 'Bàn đang được sử dụng | TABLE_OCCUPIED',
-  TABLE_NUMBER_EXISTS: 'Số bàn đã tồn tại | TABLE_NUMBER_EXISTS',
+  TABLE_NOT_FOUND: 'Không tìm thấy bàn',
+  TABLE_OCCUPIED: 'Bàn đang được sử dụng',
+  TABLE_NUMBER_EXISTS: 'Tên bàn đã tồn tại',
 
   // Category
-  CATEGORY_NOT_FOUND: 'Không tìm thấy danh mục | CATEGORY_NOT_FOUND',
+  CATEGORY_NOT_FOUND: 'Không tìm thấy danh mục',
+
+  // Role
+  ROLE_NOT_FOUND: 'Không tìm thấy chức vụ',
 
   // Product
-  PRODUCT_NOT_FOUND: 'Không tìm thấy sản phẩm | PRODUCT_NOT_FOUND',
-  PRODUCT_UNAVAILABLE: 'Sản phẩm không khả dụng | PRODUCT_UNAVAILABLE',
+  PRODUCT_NOT_FOUND: 'Không tìm thấy sản phẩm',
+  PRODUCT_UNAVAILABLE: 'Sản phẩm không khả dụng',
 
-  // Invoice
-  INVOICE_NOT_FOUND: 'Không tìm thấy hoá đơn | INVOICE_NOT_FOUND',
-  INVOICE_ALREADY_PAID: 'Hoá đơn đã được thanh toán | INVOICE_ALREADY_PAID',
-  INVOICE_CANCELLED: 'Hoá đơn đã bị huỷ | INVOICE_CANCELLED',
-  PAYMENT_SUCCESS: 'Thanh toán thành công | PAYMENT_SUCCESS',
+  // File
+  FILE_REQUIRED: 'Vui lòng chọn file ảnh',
+
+  // Statistics
+  EXCEL_EXPORT_ERROR: 'Không thể xuất file Excel',
+
+  // Payment
+  INVOICE_NOT_FOUND: 'Không tìm thấy hoá đơn',
+  INVOICE_ALREADY_PAID: 'Hoá đơn đã được thanh toán',
+  INVOICE_CANCELLED: 'Hoá đơn đã bị huỷ',
+  PAYMENT_SUCCESS: 'Thanh toán thành công',
+  VNPAY_CONFIG_MISSING: 'Thiếu cấu hình VNPAY',
+  MOMO_API_ERROR: 'MoMo API không trả về URL thanh toán',
 
   // Approval
-  APPROVAL_NOT_FOUND: 'Không tìm thấy yêu cầu phê duyệt | APPROVAL_NOT_FOUND',
-  APPROVAL_ALREADY_REVIEWED:
-    'Yêu cầu đã được xử lý | APPROVAL_ALREADY_REVIEWED',
-  APPROVED: 'Đã phê duyệt | APPROVED',
-  REJECTED: 'Đã từ chối | REJECTED',
+  APPROVAL_NOT_FOUND: 'Không tìm thấy yêu cầu phê duyệt',
+  APPROVAL_ALREADY_REVIEWED: 'Yêu cầu đã được xử lý',
+  APPROVED: 'Đã phê duyệt',
+  REJECTED: 'Đã từ chối',
 
   // Validation
-  INVALID_EMAIL: 'Email không hợp lệ | INVALID_EMAIL',
-  INVALID_PHONE: 'Số điện thoại không hợp lệ | INVALID_PHONE',
-  REQUIRED_FIELD: 'Trường này là bắt buộc | REQUIRED_FIELD',
+  INVALID_EMAIL: 'Email không hợp lệ',
+  INVALID_PHONE: 'Số điện thoại không hợp lệ',
+  REQUIRED_FIELD: 'Trường này là bắt buộc',
 
   // Server Error
-  INTERNAL_ERROR: 'Lỗi hệ thống | INTERNAL_SERVER_ERROR',
-  DATABASE_ERROR: 'Lỗi cơ sở dữ liệu | DATABASE_ERROR',
+  INTERNAL_ERROR: 'Lỗi hệ thống',
+  DATABASE_ERROR: 'Lỗi cơ sở dữ liệu',
 };

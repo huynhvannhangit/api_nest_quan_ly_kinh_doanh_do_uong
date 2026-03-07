@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
 import { Roles } from '../../core/decorators/roles.decorator';
 import { UserRole } from '../user/entities/user.entity';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Controller('system-config')
 export class SystemConfigController {
@@ -57,7 +58,7 @@ export class SystemConfigController {
   )
   async uploadLogo(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
-      throw new BadRequestException('Vui lòng chọn file ảnh');
+      throw new BadRequestException(MESSAGES.FILE_REQUIRED);
     }
     const logoUrl = `/public/logos/${file.filename}`;
     return await this.systemConfigService.update({ logoUrl });

@@ -41,10 +41,13 @@ export class AiAssistantService {
     let systemPrompt = '';
 
     if (isAdmin) {
-      const overview = (await this.statisticsService.getOverview()) || {};
-      const topProducts = (await this.statisticsService.getTopProducts()) || [];
-      const allTables = (await this.tableService.findAll()) || [];
-      const recentInvoices = (await this.invoiceService.findAll()) || [];
+      const [overview, topProducts, allTables, recentInvoices] =
+        await Promise.all([
+          this.statisticsService.getOverview().then((res) => res || {}),
+          this.statisticsService.getTopProducts().then((res) => res || []),
+          this.tableService.findAll().then((res) => res || []),
+          this.invoiceService.findAll().then((res) => res || []),
+        ]);
       const top5Invoices = recentInvoices.slice(0, 5);
 
       systemPrompt = `
@@ -75,9 +78,11 @@ export class AiAssistantService {
         4. Nếu người dùng hỏi về số lượng khách ngồi tại bàn: Giải thích rằng hiện tại hệ thống chỉ ghi nhận trạng thái bàn (Có khách/Trống) chứ chưa ghi nhận cụ thể số lượng khách (đầu người) tại bàn đó.
       `;
     } else {
-      const categories = await this.categoryService.findAll();
-      const products = await this.productService.findAll();
-      const areas = await this.areaService.findAll();
+      const [categories, products, areas] = await Promise.all([
+        this.categoryService.findAll(),
+        this.productService.findAll(),
+        this.areaService.findAll(),
+      ]);
 
       // Filter active products
       const availableProducts = products.filter((p) => p.isAvailable);
@@ -165,7 +170,7 @@ export class AiAssistantService {
         modelName.includes(':') ||
         modelName.includes('llama') ||
         modelName.includes('qwen')
-          ? 'gemini-1.5-flash-latest'
+          ? 'gemini-2.5-flash'
           : modelName;
 
       const model = this.genAI.getGenerativeModel({ model: geminiModelName });

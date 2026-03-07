@@ -6,6 +6,7 @@ import { ProductHistoryService } from './product-history.service';
 import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class ProductService {
@@ -60,7 +61,7 @@ export class ProductService {
       where: { id },
       relations: ['category', 'creator', 'updater'],
     });
-    if (!product) throw new NotFoundException(`Product #${id} not found`);
+    if (!product) throw new NotFoundException(MESSAGES.PRODUCT_NOT_FOUND);
     return product;
   }
 

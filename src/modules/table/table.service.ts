@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+import { CreateTableDto } from './dto/create-table.dto';
+import { UpdateTableDto } from './dto/update-table.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { Table } from './entities/table.entity';
 import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class TableService {
@@ -15,7 +22,14 @@ export class TableService {
     private readonly approvalsService: ApprovalsService,
   ) {}
 
-  async create(data: any, createdBy: number): Promise<Table> {
+  async create(data: CreateTableDto, createdBy: number): Promise<Table> {
+    const existingTable = await this.tableRepository.findOne({
+      where: { tableNumber: data.tableNumber },
+    });
+    if (existingTable) {
+      throw new ConflictException(MESSAGES.TABLE_NUMBER_EXISTS);
+    }
+
     const table = new Table();
     Object.assign(table, data);
     table.createdBy = createdBy;
@@ -46,14 +60,14 @@ export class TableService {
       relations: ['area', 'creator', 'updater'],
     });
     if (!table) {
-      throw new NotFoundException(`Table with ID ${id} not found`);
+      throw new NotFoundException(MESSAGES.TABLE_NOT_FOUND);
     }
     return table;
   }
 
   async update(
     id: number,
-    data: any,
+    data: UpdateTableDto,
     updatedBy: number,
     reason?: string,
   ): Promise<any> {
@@ -78,7 +92,7 @@ export class TableService {
           methodName: 'executeUpdate',
           args: [id, data],
           oldData,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           newData: data,
         },
         reason: reason || `Cập nhật bàn ID: ${id}`,
@@ -89,9 +103,21 @@ export class TableService {
 
   async executeUpdate(
     id: number,
-    data: any,
+    data: UpdateTableDto,
     updatedBy: number,
   ): Promise<Table> {
+    if (data.tableNumber) {
+      const existingTable = await this.tableRepository.findOne({
+        where: {
+          tableNumber: data.tableNumber,
+          id: Not(id),
+        },
+      });
+      if (existingTable) {
+        throw new ConflictException(MESSAGES.TABLE_NUMBER_EXISTS);
+      }
+    }
+
     const table = await this.findOne(id);
     Object.assign(table, data);
     table.updatedBy = updatedBy;

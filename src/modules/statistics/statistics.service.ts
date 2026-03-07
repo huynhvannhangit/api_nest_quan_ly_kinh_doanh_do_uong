@@ -18,6 +18,7 @@ import { StatisticsQueryDto } from './dto/statistics-query.dto';
 import dayjs from 'dayjs';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 interface RawRevenue {
   date: string;
@@ -223,7 +224,7 @@ export class StatisticsService {
       res.end();
     } catch (error) {
       console.error('Export Excel error:', error);
-      throw new InternalServerErrorException('Không thể xuất file Excel');
+      throw new InternalServerErrorException(MESSAGES.EXCEL_EXPORT_ERROR);
     }
   }
 

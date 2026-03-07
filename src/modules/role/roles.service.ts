@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/edit-role.dto';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class RoleService {
@@ -26,7 +27,7 @@ export class RoleService {
 
   async findOne(id: number) {
     const role = await this.roleRepository.findOne({ where: { id } });
-    if (!role) throw new NotFoundException(`Role with ID ${id} not found`);
+    if (!role) throw new NotFoundException(MESSAGES.ROLE_NOT_FOUND);
     return role;
   }
 

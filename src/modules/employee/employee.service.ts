@@ -14,6 +14,7 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class EmployeeService {
@@ -111,7 +112,7 @@ export class EmployeeService {
       age--;
     }
     if (age < 18) {
-      throw new BadRequestException('Employee must be at least 18 years old');
+      throw new BadRequestException(MESSAGES.EMPLOYEE_AGE_INVALID);
     }
   }
 
@@ -136,7 +137,7 @@ export class EmployeeService {
       relations: ['user'],
     });
     if (!employee) {
-      throw new NotFoundException(`Employee with ID ${id} not found`);
+      throw new NotFoundException(MESSAGES.EMPLOYEE_NOT_FOUND);
     }
     return employee;
   }

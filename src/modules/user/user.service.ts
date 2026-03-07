@@ -12,6 +12,7 @@ import { Employee, EmployeeStatus } from '../employee/entities/employee.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { EmailService } from '../../core/email/email.service';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class UserService {
@@ -33,7 +34,7 @@ export class UserService {
       where: { email },
     });
     if (existingUser) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException(MESSAGES.EMAIL_ALREADY_EXISTS);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

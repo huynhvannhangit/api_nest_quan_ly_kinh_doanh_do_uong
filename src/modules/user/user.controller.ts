@@ -23,6 +23,7 @@ import { RolesGuard } from '../../core/guards/roles.guard';
 import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Controller('user')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -92,7 +93,7 @@ export class UserController {
     @GetCurrentUserId() userId: number,
   ) {
     if (!file) {
-      throw new BadRequestException('Vui lòng chọn file ảnh');
+      throw new BadRequestException(MESSAGES.FILE_REQUIRED);
     }
     const avatarUrl = `/public/avatars/${file.filename}`;
     return this.userService.update(+id, { avatar: avatarUrl }, userId);

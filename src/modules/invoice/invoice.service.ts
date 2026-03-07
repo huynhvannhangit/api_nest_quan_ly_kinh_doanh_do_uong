@@ -14,6 +14,7 @@ import { OrderStatus } from '../order/entities/order.entity';
 import { ApprovalsService } from '../approval/approvals.service';
 import { UserService } from '../user/user.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class InvoiceService {
@@ -129,7 +130,7 @@ export class InvoiceService {
       relations: ['items', 'items.product', 'table', 'creator', 'order'],
     });
     if (!invoice) {
-      throw new NotFoundException(`Invoice with ID ${id} not found`);
+      throw new NotFoundException(MESSAGES.INVOICE_NOT_FOUND);
     }
     return invoice;
   }

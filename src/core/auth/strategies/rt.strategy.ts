@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload, UserPayload } from '../types';
+import { MESSAGES } from '../../../common/constants/messages.constant';
 
 @Injectable()
 export class RtStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
@@ -41,7 +42,7 @@ export class RtStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       req.cookies?.['refresh_token'];
 
-    if (!refreshToken) throw new ForbiddenException('Refresh token malformed');
+    if (!refreshToken) throw new ForbiddenException(MESSAGES.TOKEN_MALFORMED);
 
     return {
       id: payload.sub,

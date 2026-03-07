@@ -8,6 +8,7 @@ import {
 } from '../invoice/entities/invoice.entity';
 import * as crypto from 'crypto';
 import axios from 'axios';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class PaymentService {
@@ -28,11 +29,11 @@ export class PaymentService {
 
   async createVnPayUrl(invoiceId: number, ipAddr: string): Promise<string> {
     const invoice = await this.invoiceService.findOne(invoiceId);
-    if (!invoice) throw new BadRequestException('Không tìm thấy hoá đơn');
+    if (!invoice) throw new BadRequestException(MESSAGES.INVOICE_NOT_FOUND);
 
     const returnUrl = process.env.VNP_RETURN_URL;
     if (!returnUrl) {
-      throw new BadRequestException('VNPAY Config is missing');
+      throw new BadRequestException(MESSAGES.VNPAY_CONFIG_MISSING);
     }
 
     const pad = (n: number) => (n < 10 ? '0' + n : n.toString());
@@ -150,7 +151,7 @@ export class PaymentService {
 
   async createMomoUrl(invoiceId: number): Promise<string> {
     const invoice = await this.invoiceService.findOne(invoiceId);
-    if (!invoice) throw new BadRequestException('Không tìm thấy hoá đơn');
+    if (!invoice) throw new BadRequestException(MESSAGES.INVOICE_NOT_FOUND);
 
     const partnerCode = (process.env.MOMO_PARTNER_CODE || 'MOMO').trim();
     const accessKey = (process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85').trim();
@@ -226,7 +227,7 @@ export class PaymentService {
       if (response.data?.payUrl) {
         return response.data.payUrl;
       }
-      throw new BadRequestException('MoMo API không trả về URL thanh toán');
+      throw new BadRequestException(MESSAGES.MOMO_API_ERROR);
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string } };
