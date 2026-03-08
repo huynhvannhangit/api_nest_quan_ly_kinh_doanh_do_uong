@@ -36,8 +36,12 @@ export class Invoice extends BaseEntity {
   table: Table;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'creator_id' })
+  @JoinColumn({ name: 'created_by' })
   creator: User;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'updated_by' })
+  updater: User;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   subtotal: number;
