@@ -35,6 +35,12 @@ export class NotificationGateway
   }
 
   handleConnection(client: Socket) {
+    const userId = client.handshake.query.userId;
+    if (userId) {
+      const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+      void client.join(`user_${userIdStr}`);
+      this.logger.log(`Client ${client.id} joined room user_${userIdStr}`);
+    }
     this.logger.log(`Client connected: ${client.id}`);
   }
 
@@ -43,11 +49,22 @@ export class NotificationGateway
   }
 
   /**
-   * Phát sự kiện thông báo đến tất cả clients đang kết nối.
+   * Phát sự kiện thông báo đến tất cả clients hoặc một user cụ thể.
    * @param payload Dữ liệu thông báo
    */
   emitNotification(payload: NotificationPayload): void {
-    this.server.emit('notification', payload);
-    this.logger.log(`Emitted notification: [${payload.type}] ${payload.title}`);
+    if (payload.userId) {
+      // Gửi riêng cho user đó
+      this.server.to(`user_${payload.userId}`).emit('notification', payload);
+      this.logger.log(
+        `Emitted targeted notification to user ${payload.userId}: [${payload.type}] ${payload.title}`,
+      );
+    } else {
+      // Gửi cho tất cả mọi người
+      this.server.emit('notification', payload);
+      this.logger.log(
+        `Emitted broadcast notification: [${payload.type}] ${payload.title}`,
+      );
+    }
   }
 }

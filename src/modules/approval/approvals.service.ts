@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import {
   ApprovalRequest,
@@ -98,6 +98,7 @@ export class ApprovalsService {
         reviewNote: data.reviewNote,
         reviewedBy: userId,
       },
+      saved.requestedBy.id, // Target only the requester
     );
     // cspell:enable
 
@@ -110,7 +111,7 @@ export class ApprovalsService {
         await this.executeAction(saved);
       } catch (error: unknown) {
         const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
+          error instanceof Error ? error.message : 'Duyệt yêu cầu thất bại';
         this.logger.error(`Failed to execute approved action: ${errorMessage}`);
         // Optionally revert status or handle error
       }
@@ -168,5 +169,16 @@ export class ApprovalsService {
     approval.deletedBy = userId;
     await this.approvalRepository.save(approval);
     await this.approvalRepository.softRemove(approval);
+  }
+
+  async removeMany(ids: number[], userId: number): Promise<void> {
+    const approvals = await this.approvalRepository.find({
+      where: { id: In(ids) },
+    });
+    for (const approval of approvals) {
+      approval.deletedBy = userId;
+    }
+    await this.approvalRepository.save(approvals);
+    await this.approvalRepository.softRemove(approvals);
   }
 }

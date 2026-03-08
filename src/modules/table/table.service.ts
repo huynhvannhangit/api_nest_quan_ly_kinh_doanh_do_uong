@@ -12,12 +12,17 @@ import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { Order, OrderStatus } from '../order/entities/order.entity';
+import { In } from 'typeorm';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class TableService {
   constructor(
     @InjectRepository(Table)
     private readonly tableRepository: Repository<Table>,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
     private readonly userService: UserService,
     private readonly approvalsService: ApprovalsService,
   ) {}
@@ -155,6 +160,19 @@ export class TableService {
 
   async executeRemove(id: number, deletedBy: number): Promise<void> {
     const table = await this.findOne(id);
+
+    // Kiểm tra bàn có đơn hàng chưa hoàn tất không
+    const activeOrders = await this.orderRepository.count({
+      where: {
+        table: { id },
+        status: In([OrderStatus.PENDING, OrderStatus.PROCESSING]),
+      },
+    });
+
+    if (activeOrders > 0) {
+      throw new BadRequestException(MESSAGES.TABLE_HAS_ACTIVE_ORDERS);
+    }
+
     table.deletedBy = deletedBy;
     await this.tableRepository.save(table);
     await this.tableRepository.softRemove(table);
@@ -195,6 +213,19 @@ export class TableService {
 
   async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
     const tables = await this.tableRepository.findByIds(ids);
+
+    // Kiểm tra xem có bàn nào đang có đơn hàng chưa hoàn tất không
+    const activeOrders = await this.orderRepository.count({
+      where: {
+        table: { id: In(ids) },
+        status: In([OrderStatus.PENDING, OrderStatus.PROCESSING]),
+      },
+    });
+
+    if (activeOrders > 0) {
+      throw new BadRequestException(MESSAGES.TABLE_HAS_ACTIVE_ORDERS);
+    }
+
     for (const table of tables) {
       table.deletedBy = deletedBy;
     }

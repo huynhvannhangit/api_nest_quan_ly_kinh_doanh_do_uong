@@ -35,6 +35,9 @@ export class Invoice extends BaseEntity {
   @JoinColumn({ name: 'table_id' })
   table: Table;
 
+  @Column({ name: 'table_number_snapshot', type: 'varchar', nullable: true })
+  tableNameSnapshot: string | null;
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })
   creator: User;

@@ -116,10 +116,15 @@ export class OrderService {
     id: number,
     items: CreateOrderItemDto[],
     userId: number,
+    notes?: string,
   ): Promise<Order> {
     const order = await this.findOne(id);
     if (order.status === OrderStatus.COMPLETED) {
       throw new Error('Cannot add items to a completed order');
+    }
+
+    if (notes !== undefined) {
+      order.notes = notes;
     }
 
     const newItems = items.map((item) => {

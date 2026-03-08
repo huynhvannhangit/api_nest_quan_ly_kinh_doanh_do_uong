@@ -13,6 +13,9 @@ export class InvoiceItem extends BaseEntity {
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
+  @Column({ name: 'product_name_snapshot', type: 'varchar', nullable: true })
+  productNameSnapshot: string | null;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
 

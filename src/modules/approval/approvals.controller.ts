@@ -63,6 +63,18 @@ export class ApprovalsController {
     return this.approvalsService.review(+id, userId, data);
   }
 
+  @Delete()
+  @HttpCode(200)
+  @Permissions(Permission.APPROVAL_DELETE)
+  @ActionLog({
+    action: 'DELETE_APPROVALS',
+    module: 'APPROVAL',
+    description: 'Xóa nhiều yêu cầu phê duyệt',
+  })
+  removeMany(@Body('ids') ids: number[], @GetCurrentUserId() userId: number) {
+    return this.approvalsService.removeMany(ids, userId);
+  }
+
   @Delete(':id')
   @HttpCode(200)
   @Permissions(Permission.APPROVAL_DELETE)

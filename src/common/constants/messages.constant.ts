@@ -48,9 +48,11 @@ export const MESSAGES = {
   TABLE_NOT_FOUND: 'Không tìm thấy bàn',
   TABLE_OCCUPIED: 'Bàn đang được sử dụng',
   TABLE_NUMBER_EXISTS: 'Tên bàn đã tồn tại',
+  TABLE_HAS_ACTIVE_ORDERS: 'Không thể xóa bàn đang có đơn hàng chưa hoàn tất',
 
   // Category
   CATEGORY_NOT_FOUND: 'Không tìm thấy danh mục',
+  CATEGORY_HAS_PRODUCTS: 'Không thể xóa danh mục đang có sản phẩm',
 
   // Role
   ROLE_NOT_FOUND: 'Không tìm thấy chức vụ',
@@ -58,6 +60,8 @@ export const MESSAGES = {
   // Product
   PRODUCT_NOT_FOUND: 'Không tìm thấy sản phẩm',
   PRODUCT_UNAVAILABLE: 'Sản phẩm không khả dụng',
+  PRODUCT_HAS_ACTIVE_ORDERS:
+    'Không thể xóa sản phẩm đang có trong đơn hàng chưa hoàn tất',
 
   // File
   FILE_REQUIRED: 'Vui lòng chọn file ảnh',

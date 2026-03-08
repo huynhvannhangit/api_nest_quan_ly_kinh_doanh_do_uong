@@ -78,6 +78,7 @@ export class InvoiceService {
       const order = await this.orderService.findOne(data.orderId);
       invoice.orderId = data.orderId;
       invoice.table = order.table || null;
+      invoice.tableNameSnapshot = order.table?.tableNumber ?? null;
       invoice.subtotal = Number(order.totalPrice);
 
       // Handle discount if provided
@@ -90,6 +91,7 @@ export class InvoiceService {
         invoice.items = order.items.map((orderItem) => {
           const item = new InvoiceItem();
           item.product = orderItem.product;
+          item.productNameSnapshot = orderItem.product?.name ?? null;
           item.price = orderItem.price;
           item.quantity = orderItem.quantity;
           item.total = Number(orderItem.price) * Number(orderItem.quantity);
@@ -110,11 +112,13 @@ export class InvoiceService {
     if (!kw) {
       return this.invoiceRepository.find({
         relations: ['items', 'items.product', 'table', 'creator'],
+        withDeleted: true, // Allow showing soft-deleted products/tables in history
         order: { createdAt: 'DESC' },
       });
     }
     return this.invoiceRepository
       .createQueryBuilder('invoice')
+      .withDeleted() // Include deleted products/tables
       .leftJoinAndSelect('invoice.items', 'items')
       .leftJoinAndSelect('items.product', 'product')
       .leftJoinAndSelect('invoice.table', 'table')
@@ -128,6 +132,7 @@ export class InvoiceService {
     const invoice = await this.invoiceRepository.findOne({
       where: { id },
       relations: ['items', 'items.product', 'table', 'creator', 'order'],
+      withDeleted: true,
     });
     if (!invoice) {
       throw new NotFoundException(MESSAGES.INVOICE_NOT_FOUND);

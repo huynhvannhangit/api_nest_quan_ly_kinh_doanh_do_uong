@@ -7,12 +7,18 @@ import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { OrderItem } from '../order/entities/order-item.entity';
+import { OrderStatus } from '../order/entities/order.entity';
+import { In } from 'typeorm';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(OrderItem)
+    private readonly orderItemRepository: Repository<OrderItem>,
     private readonly historyService: ProductHistoryService,
     private readonly userService: UserService,
     private readonly approvalsService: ApprovalsService,
@@ -164,6 +170,22 @@ export class ProductService {
 
   async executeRemove(id: number, userId?: number): Promise<void> {
     const product = await this.findOne(id);
+
+    // Kiểm tra sản phẩm có trong đơn hàng chưa hoàn tất không
+    const activeOrderItems = await this.orderItemRepository.count({
+      where: {
+        product: { id },
+        order: {
+          status: In([OrderStatus.PENDING, OrderStatus.PROCESSING]),
+        },
+      },
+      relations: ['order'],
+    });
+
+    if (activeOrderItems > 0) {
+      throw new BadRequestException(MESSAGES.PRODUCT_HAS_ACTIVE_ORDERS);
+    }
+
     if (userId) {
       product.deletedBy = userId;
       await this.productRepository.save(product);
@@ -217,6 +239,22 @@ export class ProductService {
 
   async executeRemoveMany(ids: number[], userId?: number): Promise<void> {
     const products = await this.productRepository.findByIds(ids);
+
+    // Kiểm tra các sản phẩm có trong đơn hàng chưa hoàn tất không
+    const activeOrderItems = await this.orderItemRepository.count({
+      where: {
+        product: { id: In(ids) },
+        order: {
+          status: In([OrderStatus.PENDING, OrderStatus.PROCESSING]),
+        },
+      },
+      relations: ['order'],
+    });
+
+    if (activeOrderItems > 0) {
+      throw new BadRequestException(MESSAGES.PRODUCT_HAS_ACTIVE_ORDERS);
+    }
+
     for (const product of products) {
       if (userId) product.deletedBy = userId;
     }

@@ -2,13 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
-import { ILike } from 'typeorm';
+import { Product } from '../product/entities/product.entity';
+import { ILike, In } from 'typeorm';
+import { BadRequestException } from '@nestjs/common';
+import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
   ) {}
 
   async create(data: Partial<Category>, createdBy: number): Promise<Category> {
@@ -44,14 +49,27 @@ export class CategoryService {
   }
 
   async remove(id: number, deletedBy: number): Promise<void> {
+    const productsCount = await this.productRepository.count({
+      where: { categoryId: id },
+    });
+    if (productsCount > 0) {
+      throw new BadRequestException(MESSAGES.CATEGORY_HAS_PRODUCTS);
+    }
     await this.categoryRepository.update(id, { deletedBy });
     await this.categoryRepository.softRemove({ id } as any);
   }
 
   async removeMany(ids: number[], deletedBy: number): Promise<void> {
+    const productsCount = await this.productRepository.count({
+      where: { categoryId: In(ids) },
+    });
+    if (productsCount > 0) {
+      throw new BadRequestException(MESSAGES.CATEGORY_HAS_PRODUCTS);
+    }
     await this.categoryRepository.update(ids, { deletedBy });
-    await this.categoryRepository.softRemove(
-      ids.map((id) => ({ id }) as any) as any,
-    );
+    const categories = await this.categoryRepository.find({
+      where: { id: In(ids) },
+    });
+    await this.categoryRepository.softRemove(categories);
   }
 }

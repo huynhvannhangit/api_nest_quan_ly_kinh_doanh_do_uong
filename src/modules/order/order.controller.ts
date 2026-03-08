@@ -83,9 +83,10 @@ export class OrderController {
   addItems(
     @Param('id') id: string,
     @Body('items') items: CreateOrderItemDto[],
+    @Body('notes') notes: string,
     @GetCurrentUserId() userId: number,
   ) {
-    return this.orderService.addItems(+id, items, userId);
+    return this.orderService.addItems(+id, items, userId, notes);
   }
 
   @Delete(':id')

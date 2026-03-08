@@ -70,12 +70,14 @@ export class NotificationService implements OnModuleInit {
     title: string,
     message: string,
     data?: Record<string, any>,
+    userId?: number,
   ): Promise<void> {
     const payload: NotificationPayload = {
       type,
       title,
       message,
       data,
+      userId,
       createdAt: new Date().toISOString(),
     };
 
