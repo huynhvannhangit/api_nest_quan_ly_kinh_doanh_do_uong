@@ -62,7 +62,7 @@ export class RolesGuard implements CanActivate {
       userRole &&
       typeof userRole === 'object' &&
       'name' in userRole &&
-      userRole.name === 'ADMIN'
+      (userRole.name === 'ADMIN' || userRole.name === 'CHỦ CỬA HÀNG')
     ) {
       return true;
     }

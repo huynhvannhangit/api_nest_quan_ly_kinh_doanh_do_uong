@@ -19,6 +19,8 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
+import { Permissions } from '../../core/decorators/permissions.decorator';
+import { Permission } from '../../common/enums/permission.enum';
 
 @Controller('product')
 export class ProductController {
@@ -26,6 +28,7 @@ export class ProductController {
 
   @Post('upload')
   @HttpCode(200)
+  @Permissions(Permission.PRODUCT_CREATE, Permission.PRODUCT_UPDATE)
   @ActionLog({
     action: 'UPLOAD_IMAGE',
     module: 'PRODUCT',
@@ -57,6 +60,7 @@ export class ProductController {
 
   @Post()
   @HttpCode(201)
+  @Permissions(Permission.PRODUCT_CREATE)
   @ActionLog({
     action: 'CREATE_PRODUCT',
     module: 'PRODUCT',
@@ -71,18 +75,21 @@ export class ProductController {
 
   @Get()
   @HttpCode(200)
+  @Permissions(Permission.PRODUCT_VIEW)
   findAll(@Query('keyword') keyword?: string) {
     return this.productService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
+  @Permissions(Permission.PRODUCT_VIEW)
   findOne(@Param('id') id: string) {
     return this.productService.findOne(+id);
   }
 
   @Patch(':id')
   @HttpCode(200)
+  @Permissions(Permission.PRODUCT_UPDATE)
   @ActionLog({
     action: 'UPDATE_PRODUCT',
     module: 'PRODUCT',
@@ -99,6 +106,7 @@ export class ProductController {
 
   @Delete('bulk')
   @HttpCode(200)
+  @Permissions(Permission.PRODUCT_DELETE)
   @ActionLog({
     action: 'DELETE_PRODUCT_BULK',
     module: 'PRODUCT',
@@ -113,6 +121,7 @@ export class ProductController {
 
   @Delete(':id')
   @HttpCode(200)
+  @Permissions(Permission.PRODUCT_DELETE)
   @ActionLog({
     action: 'DELETE_PRODUCT',
     module: 'PRODUCT',

@@ -35,6 +35,12 @@ interface RawTopProduct {
   revenue: string;
 }
 
+export interface DashboardData {
+  overview: any;
+  revenue: any[];
+  topProducts: any[];
+}
+
 @Injectable()
 export class StatisticsService {
   constructor(
@@ -59,6 +65,10 @@ export class StatisticsService {
     @InjectRepository(ApprovalRequest)
     private readonly approvalRepository: Repository<ApprovalRequest>,
   ) {}
+
+  private dashboardCache: { data: DashboardData; expiresAt: number } | null =
+    null;
+  private readonly CACHE_TTL = 60 * 1000; // 1 minute
 
   async getOverview() {
     const [
@@ -307,16 +317,28 @@ export class StatisticsService {
   }
 
   async getDashboardData() {
+    const now = Date.now();
+    if (this.dashboardCache && this.dashboardCache.expiresAt > now) {
+      return this.dashboardCache.data;
+    }
+
     const [overview, revenue, topProducts] = await Promise.all([
       this.getOverview(),
       this.getRevenueByDateRange({}),
       this.getTopProducts(),
     ]);
 
-    return {
+    const data = {
       overview,
       revenue,
       topProducts,
     };
+
+    this.dashboardCache = {
+      data,
+      expiresAt: now + this.CACHE_TTL,
+    };
+
+    return data;
   }
 }

@@ -153,7 +153,7 @@ export class EmployeeService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeUpdate(id, data, updatedBy);
@@ -164,6 +164,7 @@ export class EmployeeService {
     return this.approvalsService.create(
       {
         type: ApprovalType.UPDATE,
+        targetModule: 'Nhân viên',
         metadata: {
           serviceName: 'EmployeeService',
           methodName: 'executeUpdate',
@@ -217,7 +218,7 @@ export class EmployeeService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeUpdateEmployeeStatus(id, status, updatedBy);
@@ -228,6 +229,7 @@ export class EmployeeService {
     return this.approvalsService.create(
       {
         type: ApprovalType.UPDATE,
+        targetModule: 'Nhân viên',
         metadata: {
           serviceName: 'EmployeeService',
           methodName: 'executeUpdateEmployeeStatus',
@@ -281,7 +283,7 @@ export class EmployeeService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemove(id, deletedBy);
@@ -292,6 +294,7 @@ export class EmployeeService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Nhân viên',
         metadata: {
           serviceName: 'EmployeeService',
           methodName: 'executeRemove',
@@ -321,7 +324,7 @@ export class EmployeeService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemoveMany(ids, deletedBy);
@@ -332,6 +335,7 @@ export class EmployeeService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Nhân viên',
         metadata: {
           serviceName: 'EmployeeService',
           methodName: 'executeRemoveMany',

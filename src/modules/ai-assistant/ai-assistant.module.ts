@@ -7,6 +7,7 @@ import { CategoryModule } from '../category/category.module';
 import { AreaModule } from '../area/area.module';
 import { TableModule } from '../table/table.module';
 import { InvoiceModule } from '../invoice/invoice.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { InvoiceModule } from '../invoice/invoice.module';
     AreaModule,
     TableModule,
     InvoiceModule,
+    UserModule,
   ],
   providers: [AiAssistantService],
   controllers: [AiAssistantController],

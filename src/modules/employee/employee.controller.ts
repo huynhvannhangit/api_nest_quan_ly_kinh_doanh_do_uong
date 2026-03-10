@@ -37,7 +37,7 @@ export class EmployeeController {
 
   @Get('available-users')
   @HttpCode(200)
-  @Permissions(Permission.EMPLOYEE_VIEW)
+  @Permissions(Permission.EMPLOYEE_SEARCH)
   getAvailableUsers(@Query('excludeEmployeeId') excludeEmployeeId?: string) {
     return this.employeeService.getAvailableUsers(
       excludeEmployeeId ? +excludeEmployeeId : undefined,
@@ -46,14 +46,14 @@ export class EmployeeController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.EMPLOYEE_VIEW)
+  @Permissions(Permission.EMPLOYEE_SEARCH)
   findAll(@Query('keyword') keyword?: string) {
     return this.employeeService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.EMPLOYEE_VIEW)
+  @Permissions(Permission.EMPLOYEE_SEARCH)
   findOne(@Param('id') id: string) {
     return this.employeeService.findOne(+id);
   }

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -8,7 +13,10 @@ import {
   ApprovalStatus,
 } from './entities/approval-request.entity';
 import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/dto/notification.dto';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { Permission } from '../../common/enums/permission.enum';
+import { Role } from '../role/entities/role.entity';
 
 interface ApprovalMetadata {
   serviceName: string;
@@ -16,12 +24,24 @@ interface ApprovalMetadata {
   args: unknown[];
 }
 
+const MODULE_APPROVE_PERMISSION_MAP: Record<string, Permission> = {
+  'Sản phẩm': Permission.PRODUCT_APPROVE,
+  'Nhân viên': Permission.EMPLOYEE_APPROVE,
+  Bàn: Permission.TABLE_APPROVE,
+  'Khu vực': Permission.AREA_APPROVE,
+  'Danh mục': Permission.CATEGORY_APPROVE,
+  'Đơn hàng': Permission.ORDER_APPROVE,
+  'Hoá đơn': Permission.INVOICE_APPROVE,
+};
+
 @Injectable()
 export class ApprovalsService {
   private readonly logger = new Logger(ApprovalsService.name);
   constructor(
     @InjectRepository(ApprovalRequest)
     private readonly approvalRepository: Repository<ApprovalRequest>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly moduleRef: ModuleRef,
     private readonly notificationService: NotificationService,
   ) {}
@@ -51,6 +71,7 @@ export class ApprovalsService {
       .leftJoinAndSelect('approval.requestedBy', 'requestedBy')
       .leftJoinAndSelect('approval.reviewedBy', 'reviewedBy')
       .where('approval.reason LIKE :kw', { kw: `%${kw}%` })
+      .orWhere('approval.targetModule LIKE :kw', { kw: `%${kw}%` })
       .orWhere('requestedBy.fullName LIKE :kw', { kw: `%${kw}%` })
       .orderBy('approval.createdAt', 'DESC')
       .getMany();
@@ -73,6 +94,31 @@ export class ApprovalsService {
     data: { status: ApprovalStatus; reviewNote?: string },
   ): Promise<ApprovalRequest> {
     const approval = await this.findOne(id);
+
+    // Permission check
+    const reviewer = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['role'],
+    });
+
+    const role = reviewer?.role as Role;
+    const permissions = role?.permissions || [];
+    const isAdmin = role?.name === 'ADMIN' || role?.name === 'CHỦ CỬA HÀNG';
+
+    if (!isAdmin) {
+      const requiredPermission =
+        MODULE_APPROVE_PERMISSION_MAP[approval.targetModule];
+      if (
+        requiredPermission &&
+        !permissions.includes(requiredPermission) &&
+        !permissions.includes(Permission.APPROVAL_MANAGE)
+      ) {
+        throw new ForbiddenException(
+          'Bạn không có quyền phê duyệt yêu cầu cho module này',
+        );
+      }
+    }
+
     const prevStatus = approval.status;
 
     approval.status = data.status;
@@ -87,10 +133,10 @@ export class ApprovalsService {
     const isApproved = data.status === ApprovalStatus.APPROVED;
     const statusLabel = isApproved ? 'Đã duyệt' : 'Đã từ chối';
     // cspell:disable
-    await this.notificationService.sendNotification(
-      'APPROVAL_UPDATED',
+    this.notificationService.sendNotification(
+      NotificationType.APPROVAL_UPDATED,
       `${statusLabel} yêu cầu phê duyệt`,
-      `Yêu cầu ${saved.requestNumber} đã được ${isApproved ? 'phê duyệt' : 'từ chối'}${data.reviewNote ? `: "${data.reviewNote}"` : ''}`,
+      `Yêu cầu ${saved.requestNumber} đã được ${isApproved ? 'phê duyệt' : 'tối chối'}${data.reviewNote ? `: "${data.reviewNote}"` : ''}`,
       {
         approvalId: saved.id,
         requestNumber: saved.requestNumber,

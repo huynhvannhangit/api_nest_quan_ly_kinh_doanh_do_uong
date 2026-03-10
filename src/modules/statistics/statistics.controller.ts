@@ -1,11 +1,22 @@
-import { Controller, Get, Query, Res, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Res,
+  HttpCode,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { StatisticsService } from './statistics.service';
 import { StatisticsQueryDto } from './dto/statistics-query.dto';
 import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
+
 @Controller('statistics')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
 
@@ -32,7 +43,7 @@ export class StatisticsController {
 
   @Get('export')
   @HttpCode(200)
-  @Permissions(Permission.STATISTICS_VIEW)
+  @Permissions(Permission.STATISTICS_EXPORT)
   async export(@Query() query: StatisticsQueryDto, @Res() res: Response) {
     return this.statisticsService.exportExcel(query, res);
   }

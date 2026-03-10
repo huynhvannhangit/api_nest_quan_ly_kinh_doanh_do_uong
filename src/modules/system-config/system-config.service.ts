@@ -27,9 +27,18 @@ export class SystemConfigService {
     return config;
   }
 
-  async update(updateDto: UpdateSystemConfigDto): Promise<SystemConfig> {
+  async update(
+    updateDto: UpdateSystemConfigDto,
+    userId?: number,
+  ): Promise<SystemConfig> {
     const config = await this.get();
     Object.assign(config, updateDto);
+    if (userId) {
+      config.updatedBy = userId;
+      if (!config.createdBy) {
+        config.createdBy = userId;
+      }
+    }
     return await this.systemConfigRepository.save(config);
   }
 }

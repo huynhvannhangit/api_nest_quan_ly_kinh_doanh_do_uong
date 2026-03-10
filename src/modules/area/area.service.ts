@@ -71,7 +71,7 @@ export class AreaService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeUpdate(id, data, updatedBy);
@@ -82,6 +82,7 @@ export class AreaService {
     return this.approvalsService.create(
       {
         type: ApprovalType.UPDATE,
+        targetModule: 'Khu vực',
         metadata: {
           serviceName: 'AreaService',
           methodName: 'executeUpdate',
@@ -125,7 +126,7 @@ export class AreaService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemove(id, deletedBy);
@@ -136,6 +137,7 @@ export class AreaService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Khu vực',
         metadata: {
           serviceName: 'AreaService',
           methodName: 'executeRemove',
@@ -182,7 +184,7 @@ export class AreaService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemoveMany(ids, deletedBy);
@@ -193,6 +195,7 @@ export class AreaService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Khu vực',
         metadata: {
           serviceName: 'AreaService',
           methodName: 'executeRemoveMany',

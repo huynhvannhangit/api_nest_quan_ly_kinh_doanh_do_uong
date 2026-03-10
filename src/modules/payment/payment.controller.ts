@@ -8,9 +8,12 @@ import {
   Res,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import type { Request, Response } from 'express';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
 
 @Controller('payment')
 export class PaymentController {
@@ -18,6 +21,7 @@ export class PaymentController {
 
   @Post('vnpay/create-url')
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async createVnPayUrl(
     @Body('invoiceId') invoiceId: number,
     @Req() req: Request,
@@ -85,6 +89,7 @@ export class PaymentController {
 
   @Post('momo/create-url')
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async createMomoUrl(
     @Body('invoiceId') invoiceId: number,
   ): Promise<{ url: string }> {

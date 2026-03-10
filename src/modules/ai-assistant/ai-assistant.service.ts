@@ -78,11 +78,13 @@ export class AiAssistantService {
         4. Nếu người dùng hỏi về số lượng khách ngồi tại bàn: Giải thích rằng hiện tại hệ thống chỉ ghi nhận trạng thái bàn (Có khách/Trống) chứ chưa ghi nhận cụ thể số lượng khách (đầu người) tại bàn đó.
       `;
     } else {
-      const [categories, products, areas] = await Promise.all([
+      const [categories, productData, areas] = await Promise.all([
         this.categoryService.findAll(),
-        this.productService.findAll(),
+        this.productService.findAll(undefined, 1, 100), // Get up to 100 products for context
         this.areaService.findAll(),
       ]);
+
+      const products = 'items' in productData ? productData.items : productData;
 
       // Filter active products
       const availableProducts = products.filter((p) => p.isAvailable);

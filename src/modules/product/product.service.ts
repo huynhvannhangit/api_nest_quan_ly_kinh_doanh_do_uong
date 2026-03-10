@@ -45,21 +45,36 @@ export class ProductService {
     return savedProduct;
   }
 
-  async findAll(keyword?: string): Promise<Product[]> {
+  async findAll(keyword?: string, page = 1, limit = 20) {
     const kw = keyword?.trim();
-    if (!kw) {
-      return this.productRepository.find({
-        relations: ['category', 'creator', 'updater'],
-      });
-    }
-    return this.productRepository
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.creator', 'creator')
       .leftJoinAndSelect('product.updater', 'updater')
-      .where('product.name LIKE :kw', { kw: `%${kw}%` })
-      .orWhere('category.name LIKE :kw', { kw: `%${kw}%` })
-      .getMany();
+      .orderBy('product.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    if (kw) {
+      queryBuilder.where('(product.name LIKE :kw OR category.name LIKE :kw)', {
+        kw: `%${kw}%`,
+      });
+    }
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number): Promise<Product> {
@@ -86,7 +101,7 @@ export class ProductService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeUpdate(id, updateData, userId);
@@ -98,6 +113,7 @@ export class ProductService {
     return this.approvalsService.create(
       {
         type: ApprovalType.UPDATE,
+        targetModule: 'Sản phẩm',
         metadata: {
           serviceName: 'ProductService',
           methodName: 'executeUpdate',
@@ -144,7 +160,7 @@ export class ProductService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemove(id, userId);
@@ -156,6 +172,7 @@ export class ProductService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Sản phẩm',
         metadata: {
           serviceName: 'ProductService',
           methodName: 'executeRemove',
@@ -214,7 +231,7 @@ export class ProductService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemoveMany(ids, userId);
@@ -225,6 +242,7 @@ export class ProductService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Sản phẩm',
         metadata: {
           serviceName: 'ProductService',
           methodName: 'executeRemoveMany',

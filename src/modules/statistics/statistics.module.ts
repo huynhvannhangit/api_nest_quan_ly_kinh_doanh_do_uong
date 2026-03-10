@@ -12,6 +12,7 @@ import { Employee } from '../employee/entities/employee.entity';
 import { Order } from '../order/entities/order.entity';
 import { User } from '../user/entities/user.entity';
 import { ApprovalRequest } from '../approval/entities/approval-request.entity';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ApprovalRequest } from '../approval/entities/approval-request.entity';
       User,
       ApprovalRequest,
     ]),
+    UserModule,
   ],
   providers: [StatisticsService],
   controllers: [StatisticsController],

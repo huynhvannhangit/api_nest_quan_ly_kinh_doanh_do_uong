@@ -42,7 +42,7 @@ export class UserController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.USER_VIEW)
+  @Permissions(Permission.USER_SEARCH)
   findAll() {
     return this.userService.findAll();
   }
@@ -74,6 +74,7 @@ export class UserController {
 
   @Post(':id/avatar')
   @HttpCode(200)
+  @Permissions(Permission.USER_UPDATE)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({

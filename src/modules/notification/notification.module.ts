@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
+import { Notification } from './entities/notification.entity';
+import { NotificationController } from './notification.controller';
+import { UserModule } from '../user/user.module';
 
 /**
  * @module NotificationModule
@@ -9,6 +13,8 @@ import { NotificationService } from './notification.service';
  * Export NotificationService để các module khác (Order, Approval, ...) có thể sử dụng.
  */
 @Module({
+  imports: [TypeOrmModule.forFeature([Notification]), UserModule],
+  controllers: [NotificationController],
   providers: [NotificationGateway, NotificationService],
   exports: [NotificationService],
 })

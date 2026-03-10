@@ -78,6 +78,9 @@ import { PaymentModule } from './modules/payment/payment.module';
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Auto-create tables (dev only)
         autoLoadEntities: true,
+        extra: {
+          connectionLimit: 30, // Increase pool size for concurrent users
+        },
       }),
       inject: [ConfigService],
     }),
@@ -96,7 +99,6 @@ import { PaymentModule } from './modules/payment/payment.module';
     AiAssistantModule,
     TableModule,
     StatisticsModule,
-    ApprovalModule,
     ApprovalModule,
     LoggingModule,
     JwtModule.register({}),

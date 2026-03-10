@@ -17,9 +17,10 @@ import { SystemConfigService } from './system-config.service';
 import { UpdateSystemConfigDto } from './dto/update-system-config.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
-import { Roles } from '../../core/decorators/roles.decorator';
-import { UserRole } from '../user/entities/user.entity';
+import { Permissions } from '../../core/decorators/permissions.decorator';
+import { Permission } from '../../common/enums/permission.enum';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
 
 @Controller('system-config')
 export class SystemConfigController {
@@ -32,17 +33,20 @@ export class SystemConfigController {
   }
 
   @Patch()
-  @HttpCode(200)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  async update(@Body() updateDto: UpdateSystemConfigDto) {
-    return await this.systemConfigService.update(updateDto);
+  @HttpCode(200)
+  @Permissions(Permission.SETTING_MANAGE)
+  async update(
+    @Body() updateDto: UpdateSystemConfigDto,
+    @GetCurrentUserId() userId: number,
+  ) {
+    return await this.systemConfigService.update(updateDto, userId);
   }
 
   @Post('logo')
-  @HttpCode(200)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @HttpCode(200)
+  @Permissions(Permission.SETTING_MANAGE)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -56,11 +60,14 @@ export class SystemConfigController {
       }),
     }),
   )
-  async uploadLogo(@UploadedFile() file: Express.Multer.File) {
+  async uploadLogo(
+    @UploadedFile() file: Express.Multer.File,
+    @GetCurrentUserId() userId: number,
+  ) {
     if (!file) {
       throw new BadRequestException(MESSAGES.FILE_REQUIRED);
     }
     const logoUrl = `/public/logos/${file.filename}`;
-    return await this.systemConfigService.update({ logoUrl });
+    return await this.systemConfigService.update({ logoUrl }, userId);
   }
 }

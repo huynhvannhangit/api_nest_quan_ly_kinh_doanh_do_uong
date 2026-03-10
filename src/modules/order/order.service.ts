@@ -9,6 +9,7 @@ import { TableStatus } from '../table/entities/table.entity';
 import { Product } from '../product/entities/product.entity';
 import { CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto'; // Updated DTO import
 import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/dto/notification.dto';
 
 @Injectable()
 export class OrderService {
@@ -61,9 +62,9 @@ export class OrderService {
       );
     }
 
-    // Gửi thông báo realtime khi có đơn hàng mới
-    await this.notificationService.sendNotification(
-      'NEW_ORDER',
+    // Gửi thông báo realtime khi có đơn hàng mới (Non-blocking)
+    this.notificationService.sendNotification(
+      NotificationType.NEW_ORDER,
       'Đơn hàng mới',
       `Đơn hàng ${savedOrder.orderNumber} vừa được tạo${savedOrder.tableId ? ` cho bàn #${savedOrder.tableId}` : ''}`,
       {
@@ -77,10 +78,24 @@ export class OrderService {
     return savedOrder;
   }
 
-  async findAll(): Promise<Order[]> {
-    return this.orderRepository.find({
+  async findAll(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await this.orderRepository.findAndCount({
       relations: ['items', 'items.product', 'table', 'creator'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number): Promise<Order> {

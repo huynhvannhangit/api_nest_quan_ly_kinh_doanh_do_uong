@@ -6,6 +6,9 @@ import { Product } from '../product/entities/product.entity';
 import { ILike, In } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { UserService } from '../user/user.service';
+import { ApprovalsService } from '../approval/approvals.service';
+import { ApprovalType } from '../approval/entities/approval-request.entity';
 
 @Injectable()
 export class CategoryService {
@@ -14,6 +17,8 @@ export class CategoryService {
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    private readonly userService: UserService,
+    private readonly approvalsService: ApprovalsService,
   ) {}
 
   async create(data: Partial<Category>, createdBy: number): Promise<Category> {
@@ -43,12 +48,78 @@ export class CategoryService {
     id: number,
     data: Partial<Category>,
     updatedBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(updatedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin) {
+      return this.executeUpdate(id, data, updatedBy);
+    }
+
+    const oldData = await this.findOne(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.UPDATE,
+        targetModule: 'Danh mục',
+        metadata: {
+          serviceName: 'CategoryService',
+          methodName: 'executeUpdate',
+          args: [id, data],
+          oldData,
+          newData: data,
+        },
+        reason: reason || `Cập nhật danh mục ID: ${id}`,
+      },
+      updatedBy,
+    );
+  }
+
+  async executeUpdate(
+    id: number,
+    data: Partial<Category>,
+    updatedBy: number,
   ): Promise<Category | null> {
     await this.categoryRepository.update(id, { ...data, updatedBy });
     return this.findOne(id);
   }
 
-  async remove(id: number, deletedBy: number): Promise<void> {
+  async remove(id: number, deletedBy: number, reason?: string): Promise<any> {
+    const user = await this.userService.findById(deletedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin) {
+      return this.executeRemove(id, deletedBy);
+    }
+
+    const oldData = await this.findOne(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        targetModule: 'Danh mục',
+        metadata: {
+          serviceName: 'CategoryService',
+          methodName: 'executeRemove',
+          args: [id],
+          oldData,
+        },
+        reason: reason || `Xoá danh mục ID: ${id}`,
+      },
+      deletedBy,
+    );
+  }
+
+  async executeRemove(id: number, deletedBy: number): Promise<void> {
     const productsCount = await this.productRepository.count({
       where: { categoryId: id },
     });
@@ -59,7 +130,41 @@ export class CategoryService {
     await this.categoryRepository.softRemove({ id } as any);
   }
 
-  async removeMany(ids: number[], deletedBy: number): Promise<void> {
+  async removeMany(
+    ids: number[],
+    deletedBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(deletedBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin) {
+      return this.executeRemoveMany(ids, deletedBy);
+    }
+
+    const oldData = await this.categoryRepository.findByIds(ids);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        targetModule: 'Danh mục',
+        metadata: {
+          serviceName: 'CategoryService',
+          methodName: 'executeRemoveMany',
+          args: [ids],
+          oldData,
+        },
+        reason: reason || `Xoá hàng loạt ${ids.length} danh mục`,
+      },
+      deletedBy,
+    );
+  }
+
+  async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
     const productsCount = await this.productRepository.count({
       where: { categoryId: In(ids) },
     });

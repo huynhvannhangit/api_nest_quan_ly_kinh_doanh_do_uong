@@ -7,19 +7,26 @@ import {
   Patch,
   Delete,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { OrderStatus } from './entities/order.entity';
 import { CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
+import { Permissions } from '../../core/decorators/permissions.decorator';
+import { Permission } from '../../common/enums/permission.enum';
 
 @Controller('order')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post()
   @HttpCode(201)
+  @Permissions(Permission.ORDER_CREATE)
   @ActionLog({
     action: 'CREATE_ORDER',
     module: 'ORDER',
@@ -31,12 +38,14 @@ export class OrderController {
 
   @Get()
   @HttpCode(200)
+  @Permissions(Permission.ORDER_SEARCH)
   findAll() {
     return this.orderService.findAll();
   }
 
   @Post(':id/cancel')
   @HttpCode(200)
+  @Permissions(Permission.ORDER_CANCEL)
   @ActionLog({
     action: 'CANCEL_ORDER',
     module: 'ORDER',
@@ -48,18 +57,21 @@ export class OrderController {
 
   @Get('active/table/:tableId')
   @HttpCode(200)
+  @Permissions(Permission.ORDER_VIEW)
   findActiveByTable(@Param('tableId') tableId: string) {
     return this.orderService.findActiveByTable(+tableId);
   }
 
   @Get(':id')
   @HttpCode(200)
+  @Permissions(Permission.ORDER_VIEW)
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(+id);
   }
 
   @Patch(':id/status')
   @HttpCode(200)
+  @Permissions(Permission.ORDER_UPDATE)
   @ActionLog({
     action: 'UPDATE_ORDER_STATUS',
     module: 'ORDER',
@@ -75,6 +87,7 @@ export class OrderController {
 
   @Patch(':id/add-items')
   @HttpCode(200)
+  @Permissions(Permission.ORDER_UPDATE)
   @ActionLog({
     action: 'ADD_ORDER_ITEMS',
     module: 'ORDER',
@@ -91,6 +104,7 @@ export class OrderController {
 
   @Delete(':id')
   @HttpCode(200)
+  @Permissions(Permission.ORDER_DELETE)
   @ActionLog({
     action: 'DELETE_ORDER',
     module: 'ORDER',

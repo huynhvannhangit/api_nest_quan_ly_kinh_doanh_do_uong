@@ -49,6 +49,9 @@ export class ApprovalRequest extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   metadata: any;
 
+  @Column({ name: 'target_module', nullable: true })
+  targetModule: string;
+
   @Column({ name: 'reviewed_at', nullable: true })
   reviewedAt: Date;
 

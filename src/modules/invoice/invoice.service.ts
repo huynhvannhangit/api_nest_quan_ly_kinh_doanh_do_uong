@@ -11,9 +11,6 @@ import { TableService } from '../table/table.service';
 import { TableStatus } from '../table/entities/table.entity';
 import { OrderService } from '../order/order.service';
 import { OrderStatus } from '../order/entities/order.entity';
-import { ApprovalsService } from '../approval/approvals.service';
-import { UserService } from '../user/user.service';
-import { ApprovalType } from '../approval/entities/approval-request.entity';
 import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
@@ -25,8 +22,6 @@ export class InvoiceService {
     private readonly invoiceItemRepository: Repository<InvoiceItem>,
     private readonly tableService: TableService,
     private readonly orderService: OrderService,
-    private readonly approvalsService: ApprovalsService,
-    private readonly userService: UserService,
   ) {}
 
   async create(data: Partial<Invoice>, createdBy: number): Promise<Invoice> {
@@ -140,16 +135,6 @@ export class InvoiceService {
     return invoice;
   }
 
-  async update(
-    id: number,
-    data: Partial<Invoice>,
-    updatedBy: number,
-  ): Promise<Invoice> {
-    await this.findOne(id);
-    await this.invoiceRepository.update(id, { ...data, updatedBy });
-    return this.findOne(id);
-  }
-
   async processPayment(
     id: number,
     data: { paymentMethod: PaymentMethod },
@@ -196,40 +181,33 @@ export class InvoiceService {
     return this.findOne(id);
   }
 
-  async remove(id: number, userId: number, reason?: string): Promise<any> {
-    const user = await this.userService.findById(userId);
-    const roleName =
-      user?.role && typeof user.role === 'object'
-        ? (user.role as { name: string }).name
-        : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
-
-    if (isAdmin) {
-      return this.executeRemove(id, userId);
+  async cancel(id: number, userId: number): Promise<Invoice> {
+    const invoice = await this.findOne(id);
+    if (invoice.status === InvoiceStatus.CANCELLED) {
+      return invoice;
     }
 
-    const oldData = await this.findOne(id);
+    invoice.status = InvoiceStatus.CANCELLED;
+    invoice.updatedBy = userId;
 
-    // Create approval request for soft delete
-    return this.approvalsService.create(
-      {
-        type: ApprovalType.DELETE,
-        metadata: {
-          serviceName: 'InvoiceService',
-          methodName: 'executeRemove',
-          args: [id],
-          oldData,
-        },
-        reason: reason || 'Yêu cầu xoá hoá đơn',
-      },
-      userId,
-    );
-  }
-
-  async executeRemove(id: number, deletedBy: number): Promise<void> {
-    const invoice = await this.findOne(id);
-    invoice.deletedBy = deletedBy;
     await this.invoiceRepository.save(invoice);
-    await this.invoiceRepository.softRemove(invoice);
+
+    // If there's an associated table, and the order is also cancelled or completed, free up the table
+    // For simplicity, we free it up if it was occupied
+    if (invoice.table?.id) {
+      await this.tableService.executeUpdate(
+        invoice.table.id,
+        { status: TableStatus.AVAILABLE },
+        userId,
+      );
+    } else if (invoice.order?.tableId) {
+      await this.tableService.executeUpdate(
+        invoice.order.tableId,
+        { status: TableStatus.AVAILABLE },
+        userId,
+      );
+    }
+
+    return this.findOne(id);
   }
 }

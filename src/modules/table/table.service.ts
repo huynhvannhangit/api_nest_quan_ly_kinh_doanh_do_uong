@@ -81,7 +81,7 @@ export class TableService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeUpdate(id, data, updatedBy);
@@ -92,6 +92,7 @@ export class TableService {
     return this.approvalsService.create(
       {
         type: ApprovalType.UPDATE,
+        targetModule: 'Bàn',
         metadata: {
           serviceName: 'TableService',
           methodName: 'executeUpdate',
@@ -135,7 +136,7 @@ export class TableService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemove(id, deletedBy);
@@ -146,6 +147,7 @@ export class TableService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Bàn',
         metadata: {
           serviceName: 'TableService',
           methodName: 'executeRemove',
@@ -188,7 +190,7 @@ export class TableService {
       user?.role && typeof user.role === 'object'
         ? (user.role as { name: string }).name
         : (user?.role as string | undefined);
-    const isAdmin = roleName === 'ADMIN';
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
     if (isAdmin) {
       return this.executeRemoveMany(ids, deletedBy);
@@ -199,6 +201,7 @@ export class TableService {
     return this.approvalsService.create(
       {
         type: ApprovalType.DELETE,
+        targetModule: 'Bàn',
         metadata: {
           serviceName: 'TableService',
           methodName: 'executeRemoveMany',
