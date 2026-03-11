@@ -35,14 +35,14 @@ export class AreaController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.AREA_SEARCH)
+  @Permissions(Permission.AREA_VIEW_ALL)
   findAll(@Query('keyword') keyword?: string) {
     return this.areaService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.AREA_SEARCH)
+  @Permissions(Permission.AREA_VIEW_ID)
   findOne(@Param('id') id: string) {
     return this.areaService.findOne(+id);
   }

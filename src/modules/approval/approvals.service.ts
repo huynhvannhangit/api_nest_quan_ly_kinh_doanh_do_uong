@@ -30,8 +30,6 @@ const MODULE_APPROVE_PERMISSION_MAP: Record<string, Permission> = {
   Bàn: Permission.TABLE_APPROVE,
   'Khu vực': Permission.AREA_APPROVE,
   'Danh mục': Permission.CATEGORY_APPROVE,
-  'Đơn hàng': Permission.ORDER_APPROVE,
-  'Hoá đơn': Permission.INVOICE_APPROVE,
 };
 
 @Injectable()

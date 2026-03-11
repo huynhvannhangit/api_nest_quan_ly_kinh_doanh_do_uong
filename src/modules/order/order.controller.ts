@@ -38,7 +38,7 @@ export class OrderController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.ORDER_SEARCH)
+  @Permissions(Permission.ORDER_VIEW_ALL)
   findAll() {
     return this.orderService.findAll();
   }
@@ -57,14 +57,14 @@ export class OrderController {
 
   @Get('active/table/:tableId')
   @HttpCode(200)
-  @Permissions(Permission.ORDER_VIEW)
+  @Permissions(Permission.ORDER_VIEW_ID)
   findActiveByTable(@Param('tableId') tableId: string) {
     return this.orderService.findActiveByTable(+tableId);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.ORDER_VIEW)
+  @Permissions(Permission.ORDER_VIEW_ID)
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(+id);
   }

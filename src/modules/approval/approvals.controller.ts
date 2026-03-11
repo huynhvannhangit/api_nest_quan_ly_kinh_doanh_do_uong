@@ -35,14 +35,14 @@ export class ApprovalsController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.APPROVAL_VIEW)
+  @Permissions(Permission.APPROVAL_VIEW_ALL)
   findAll(@Query('keyword') keyword?: string) {
     return this.approvalsService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.APPROVAL_VIEW)
+  @Permissions(Permission.APPROVAL_VIEW_ID)
   findOne(@Param('id') id: string) {
     return this.approvalsService.findOne(+id);
   }

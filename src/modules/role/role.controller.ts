@@ -32,14 +32,14 @@ export class RoleController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.ROLE_VIEW)
+  @Permissions(Permission.ROLE_VIEW_ALL)
   findAll() {
     return this.roleService.findAll();
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.ROLE_VIEW)
+  @Permissions(Permission.ROLE_VIEW_ID)
   findOne(@Param('id') id: string) {
     return this.roleService.findOne(+id);
   }

@@ -4,7 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { User } from '../../user/entities/user.entity';
 
 @Entity('user_logs')
 export class UserLog {
@@ -14,6 +17,10 @@ export class UserLog {
   @Column({ nullable: true, name: 'user_id' })
   @Index()
   userId: number;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'user_id' })
+  user: User | null;
 
   @Column()
   @Index()

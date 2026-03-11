@@ -48,9 +48,12 @@ export class RolesGuard implements CanActivate {
 
     // Allow user to view/update their own profile
     if (
+      context.getClass().name === 'UserController' &&
       request.params.id &&
       +request.params.id === userId &&
-      (request.method === 'GET' || request.method === 'PATCH')
+      (request.method === 'GET' ||
+        request.method === 'PATCH' ||
+        request.method === 'POST')
     ) {
       return true;
     }

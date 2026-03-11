@@ -42,14 +42,14 @@ export class UserController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.USER_SEARCH)
+  @Permissions(Permission.USER_VIEW_ALL)
   findAll() {
     return this.userService.findAll();
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.USER_VIEW)
+  @Permissions(Permission.USER_VIEW_ID)
   findOne(@Param('id') id: string) {
     return this.userService.findById(+id);
   }

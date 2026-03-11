@@ -40,14 +40,14 @@ export class CategoryController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.CATEGORY_SEARCH)
+  @Permissions(Permission.CATEGORY_VIEW_ALL)
   findAll(@Query('keyword') keyword?: string) {
     return this.categoryService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.CATEGORY_VIEW)
+  @Permissions(Permission.CATEGORY_VIEW_ID)
   findOne(@Param('id') id: string) {
     return this.categoryService.findOne(+id);
   }
