@@ -13,7 +13,10 @@ import { UserModule } from '../user/user.module';
     ApprovalModule,
     UserModule,
   ],
-  providers: [EmployeeService],
+  providers: [
+    EmployeeService,
+    { provide: 'EmployeeService', useExisting: EmployeeService },
+  ],
   controllers: [EmployeeController],
   exports: [EmployeeService],
 })

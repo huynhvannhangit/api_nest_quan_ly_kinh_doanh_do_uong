@@ -8,6 +8,8 @@ import { AreaModule } from '../area/area.module';
 import { TableModule } from '../table/table.module';
 import { InvoiceModule } from '../invoice/invoice.module';
 import { UserModule } from '../user/user.module';
+import { EmployeeModule } from '../employee/employee.module';
+import { OrderModule } from '../order/order.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { UserModule } from '../user/user.module';
     TableModule,
     InvoiceModule,
     UserModule,
+    EmployeeModule,
+    OrderModule,
   ],
   providers: [AiAssistantService],
   controllers: [AiAssistantController],

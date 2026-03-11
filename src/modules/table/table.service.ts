@@ -27,7 +27,39 @@ export class TableService {
     private readonly approvalsService: ApprovalsService,
   ) {}
 
-  async create(data: CreateTableDto, createdBy: number): Promise<Table> {
+  async create(
+    data: CreateTableDto,
+    createdBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(createdBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin) {
+      return this.executeCreate(data, createdBy);
+    }
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.CREATE,
+        targetModule: 'Bàn',
+        metadata: {
+          serviceName: 'TableService',
+          methodName: 'executeCreate',
+          args: [data],
+          newData: data,
+        },
+        reason: reason || `Tạo bàn mới: ${data.tableNumber}`,
+      },
+      createdBy,
+    );
+  }
+
+  async executeCreate(data: CreateTableDto, createdBy: number): Promise<Table> {
     const existingTable = await this.tableRepository.findOne({
       where: { tableNumber: data.tableNumber },
     });

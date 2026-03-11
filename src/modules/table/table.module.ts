@@ -13,7 +13,10 @@ import { UserModule } from '../user/user.module';
     ApprovalModule,
     UserModule,
   ],
-  providers: [TableService],
+  providers: [
+    TableService,
+    { provide: 'TableService', useExisting: TableService },
+  ],
   controllers: [TableController],
   exports: [TableService],
 })

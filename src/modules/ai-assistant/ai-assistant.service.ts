@@ -7,6 +7,8 @@ import { CategoryService } from '../category/category.service';
 import { AreaService } from '../area/area.service';
 import { TableService } from '../table/table.service';
 import { InvoiceService } from '../invoice/invoice.service';
+import { EmployeeService } from '../employee/employee.service';
+import { OrderService } from '../order/order.service';
 import axios from 'axios';
 
 @Injectable()
@@ -21,6 +23,8 @@ export class AiAssistantService {
     private readonly areaService: AreaService,
     private readonly tableService: TableService,
     private readonly invoiceService: InvoiceService,
+    private readonly employeeService: EmployeeService,
+    private readonly orderService: OrderService,
   ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
     this.genAI = new GoogleGenerativeAI(apiKey);
@@ -31,9 +35,12 @@ export class AiAssistantService {
     history: { role: string; content: string }[] = [],
     userRole: string = 'customer',
   ): Promise<string> {
+    const normalizedRole = userRole.toUpperCase();
     const isAdmin =
-      userRole.toLowerCase() === 'admin' ||
-      userRole.toLowerCase() === 'manager';
+      normalizedRole === 'CHỦ CỬA HÀNG' ||
+      normalizedRole === 'QUẢN LÝ' ||
+      normalizedRole === 'ADMIN' ||
+      normalizedRole === 'MANAGER';
     const currentTime = new Date().toLocaleString('vi-VN', {
       timeZone: 'Asia/Ho_Chi_Minh',
     });
@@ -41,41 +48,89 @@ export class AiAssistantService {
     let systemPrompt = '';
 
     if (isAdmin) {
-      const [overview, topProducts, allTables, recentInvoices] =
-        await Promise.all([
-          this.statisticsService.getOverview().then((res) => res || {}),
-          this.statisticsService.getTopProducts().then((res) => res || []),
-          this.tableService.findAll().then((res) => res || []),
-          this.invoiceService.findAll().then((res) => res || []),
-        ]);
+      const [
+        overview,
+        topProducts,
+        allTables,
+        recentInvoices,
+        allEmployees,
+        activeOrdersResult,
+      ] = await Promise.all([
+        this.statisticsService.getOverview().then((res) => res || {}),
+        this.statisticsService.getTopProducts().then((res) => res || []),
+        this.tableService.findAll().then((res) => res || []),
+        this.invoiceService.findAll().then((res) => res || []),
+        this.employeeService.findAll().then((res) => res || []),
+        this.orderService.findAll(1, 10).then((res) => res.items || []),
+      ]);
       const top5Invoices = recentInvoices.slice(0, 5);
+      const staffSummary = allEmployees.reduce(
+        (acc: Record<string, number>, emp) => {
+          const status = emp.status || 'UNKNOWN';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        },
+        {},
+      );
+      const staffStatusText = Object.entries(staffSummary)
+        .map(([status, count]) => {
+          const statusMap: Record<string, string> = {
+            WORKING: 'Đang làm việc',
+            LEAVE: 'Đang nghỉ',
+            OFF: 'Nghỉ việc',
+            PENDING: 'Chờ duyệt',
+          };
+          return `${statusMap[status] || status}: ${count}`;
+        })
+        .join(', ');
+
+      const tableStatusMap: Record<string, string> = {
+        AVAILABLE: 'Trống',
+        OCCUPIED: 'Có khách',
+        RESERVED: 'Đã đặt',
+        MAINTENANCE: 'Bảo trì',
+      };
+
+      const orderStatusMap: Record<string, string> = {
+        PENDING: 'Chờ xử lý',
+        PROCESSING: 'Đang làm',
+        COMPLETED: 'Hoàn thành',
+        CANCELLED: 'Đã hủy',
+      };
 
       systemPrompt = `
-        Bạn là một trợ lý ảo thông minh CHUYÊN SÂU dành cho QUẢN TRỊ VIÊN.
+        Bạn là một trợ lý ảo thông minh CHUYÊN SÂU dành cho QUẢN TRỊ VIÊN/CHỦ CỬA HÀNG.
         Thời gian hiện tại: ${currentTime}.
 
-        Số liệu thống kê kinh doanh thực tế:
+        TỔNG QUAN KINH DOANH:
         - Tổng doanh thu: ${(overview.totalRevenue || 0).toLocaleString('vi-VN')} VNĐ
         - Đơn hàng: ${overview.totalOrders || 0} (Đã thanh toán: ${overview.paidOrders || 0})
-        - Hiệu suất: ${(overview.completionRate || 0).toFixed(2)}% hoàn thành
+        - Tỉ lệ hoàn thành: ${(overview.completionRate || 0).toFixed(2)}%
         - Quy mô: ${overview.totalAreas || 0} khu vực, ${overview.totalTables || 0} bàn, ${overview.totalProducts || 0} món.
         - Nhân sự: ${overview.totalEmployees || 0} nhân viên.
-        - Tồn đọng: ${overview.pendingApprovals || 0} yêu cầu chờ duyệt.
+        - Đang chờ duyệt: ${overview.pendingApprovals || 0} yêu cầu.
 
-        Trạng thái bàn hiện tại:
-        ${allTables.map((t) => `- Bàn ${t.tableNumber} (${t.area?.name || 'Khu vực chung'}): ${t.status}`).join('\n        ')}
+        CHI TIẾT NHÂN SỰ:
+        - Tổng số nhân viên: ${allEmployees.length}
+        - Trạng thái: ${staffStatusText}
 
-        5 Hóa đơn mới nhất:
-        ${top5Invoices.map((inv) => `- ${inv.invoiceNumber}: ${inv.total.toLocaleString('vi-VN')}đ (Bàn ${inv.table?.tableNumber || 'N/A'})`).join('\n        ')}
+        ĐƠN HÀNG VÀ BÀN HIỆN TẠI:
+        - Đơn hàng gần đây: ${activeOrdersResult.map((o) => `${o.orderNumber} (${orderStatusMap[o.status] || o.status}) - ${o.totalPrice.toLocaleString('vi-VN')}đ`).join(', ')}
+        - Trạng thái bàn: ${allTables.map((t) => `${t.tableNumber.includes('Bàn') ? t.tableNumber : `Bàn ${t.tableNumber}`} (${tableStatusMap[t.status] || t.status})`).join(', ')}
 
-        Top 5 sản phẩm bán chạy nhất:
+        GIAO DỊCH GẦN ĐÂY (HÓA ĐƠN):
+        ${top5Invoices.map((inv) => `- ${inv.invoiceNumber}: ${inv.total.toLocaleString('vi-VN')}đ (${inv.table?.tableNumber.includes('Bàn') ? inv.table?.tableNumber : `Bàn ${inv.table?.tableNumber || 'N/A'}`})`).join('\n        ')}
+
+        SẢN PHẨM BÁN CHẠY:
         ${topProducts.map((p, i) => `${i + 1}. ${p.name} (${p.quantity} lượt bán)`).join('\n        ')}
 
-        Quy tắc trả lời:
+        QUY TẮC TRẢ LỜI:
         1. Phân tích số liệu một cách chuyên nghiệp, đưa ra cảnh báo hoặc lời khuyên kinh doanh nếu thấy thông số bất thường.
-        2. Xưng "Trợ lý", gọi người dùng là "Quản trị viên" hoặc "Sếp".
-        3. Sử dụng Markdown với bảng biểu để so sánh dữ liệu nếu cần.
-        4. Nếu người dùng hỏi về số lượng khách ngồi tại bàn: Giải thích rằng hiện tại hệ thống chỉ ghi nhận trạng thái bàn (Có khách/Trống) chứ chưa ghi nhận cụ thể số lượng khách (đầu người) tại bàn đó.
+        2. Xưng "Trợ lý", gọi người dùng là "Sếp" hoặc "Admin".
+        3. Luôn sử dụng tiếng Việt để trả lời. TUYỆT ĐỐI không sử dụng các ngôn ngữ khác như tiếng Nga (vd: Доступен, Занято) hay tiếng Anh trong các báo cáo trạng thái.
+        4. Có thể truy cập thông tin nhân viên, sản phẩm, và đơn hàng chi tiết để trả lời. 
+        5. Nếu cần so sánh dữ liệu, hãy sử dụng bảng biểu Markdown.
+        6. Luôn ưu tiên sự chính xác dựa trên số liệu thực tế được cung cấp.
       `;
     } else {
       const [categories, productData, areas] = await Promise.all([
@@ -121,8 +176,10 @@ export class AiAssistantService {
     }
 
     const ollamaBaseUrl = this.configService.get<string>('OLLAMA_BASE_URL');
-    const modelName =
-      this.configService.get<string>('GEMINI_MODEL') || 'llama3.2';
+    const ollamaModel =
+      this.configService.get<string>('OLLAMA_MODEL') || 'qwen2.5-coder:7b';
+    const geminiModelConfig =
+      this.configService.get<string>('GEMINI_MODEL') || 'gemini-1.5-flash';
 
     // Format history for messages
     const formattedMessages: { role: string; content: string }[] = [];
@@ -143,7 +200,7 @@ export class AiAssistantService {
         }>(
           `${ollamaBaseUrl}/api/chat`,
           {
-            model: modelName,
+            model: ollamaModel,
             messages: [
               { role: 'system', content: systemPrompt },
               ...formattedMessages,
@@ -168,12 +225,13 @@ export class AiAssistantService {
 
     // Fallback to Gemini
     try {
+      // Ensure we don't try to use an Ollama model name for Gemini
       const geminiModelName =
-        modelName.includes(':') ||
-        modelName.includes('llama') ||
-        modelName.includes('qwen')
-          ? 'gemini-2.5-flash'
-          : modelName;
+        geminiModelConfig.includes(':') ||
+        geminiModelConfig.includes('llama') ||
+        geminiModelConfig.includes('qwen')
+          ? 'gemini-1.5-flash'
+          : geminiModelConfig;
 
       const model = this.genAI.getGenerativeModel({ model: geminiModelName });
 

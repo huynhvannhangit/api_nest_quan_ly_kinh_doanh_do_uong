@@ -13,7 +13,10 @@ import { UserModule } from '../user/user.module';
     ApprovalModule,
     UserModule,
   ],
-  providers: [AreaService],
+  providers: [
+    AreaService,
+    { provide: 'AreaService', useExisting: AreaService },
+  ],
   controllers: [AreaController],
   exports: [AreaService],
 })

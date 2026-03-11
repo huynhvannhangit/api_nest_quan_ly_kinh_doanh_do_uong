@@ -27,6 +27,42 @@ export class ProductService {
   async create(
     productData: Partial<Product>,
     userId?: number,
+    reason?: string,
+  ): Promise<any> {
+    if (!userId) {
+      return this.executeCreate(productData, userId);
+    }
+
+    const user = await this.userService.findById(userId);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin) {
+      return this.executeCreate(productData, userId);
+    }
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.CREATE,
+        targetModule: 'Sản phẩm',
+        metadata: {
+          serviceName: 'ProductService',
+          methodName: 'executeCreate',
+          args: [productData],
+          newData: productData,
+        },
+        reason: reason || `Tạo sản phẩm mới: ${productData.name}`,
+      },
+      userId,
+    );
+  }
+
+  async executeCreate(
+    productData: Partial<Product>,
+    userId?: number,
   ): Promise<Product> {
     const product = this.productRepository.create(productData);
     if (userId) {

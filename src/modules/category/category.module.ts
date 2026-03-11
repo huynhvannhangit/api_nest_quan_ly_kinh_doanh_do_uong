@@ -13,7 +13,10 @@ import { ApprovalModule } from '../approval/approval.module';
     UserModule,
     ApprovalModule,
   ],
-  providers: [CategoryService],
+  providers: [
+    CategoryService,
+    { provide: 'CategoryService', useExisting: CategoryService },
+  ],
   controllers: [CategoryController],
   exports: [CategoryService],
 })

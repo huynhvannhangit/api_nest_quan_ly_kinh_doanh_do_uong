@@ -218,4 +218,12 @@ export class UserService {
     await this.usersRepository.update(id, { deletedBy });
     await this.usersRepository.softDelete(id);
   }
+
+  async findAdmins(): Promise<User[]> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('role.name IN (:...roles)', { roles: ['ADMIN', 'CHỦ CỬA HÀNG'] })
+      .getMany();
+  }
 }

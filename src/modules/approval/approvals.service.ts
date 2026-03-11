@@ -17,6 +17,7 @@ import { NotificationType } from '../notification/dto/notification.dto';
 import { MESSAGES } from '../../common/constants/messages.constant';
 import { Permission } from '../../common/enums/permission.enum';
 import { Role } from '../role/entities/role.entity';
+import { UserService } from '../user/user.service';
 
 interface ApprovalMetadata {
   serviceName: string;
@@ -42,6 +43,7 @@ export class ApprovalsService {
     private readonly userRepository: Repository<User>,
     private readonly moduleRef: ModuleRef,
     private readonly notificationService: NotificationService,
+    private readonly userService: UserService,
   ) {}
 
   async create(data: any, userId: number): Promise<ApprovalRequest> {
@@ -53,7 +55,36 @@ export class ApprovalsService {
     approval.createdBy = userId;
     approval.updatedBy = userId;
     approval.status = ApprovalStatus.PENDING;
-    return this.approvalRepository.save(approval);
+    const saved = await this.approvalRepository.save(approval);
+
+    // Thông báo cho Admin/Chủ cửa hàng (Background)
+    void this.userService
+      .findAdmins()
+      .then((admins) => {
+        const requesterName = approval.requestedBy?.fullName || 'Nhân viên';
+        for (const adminUser of admins) {
+          // Tránh gửi cho chính mình nếu admin là người gửi (thực tế Admin bypass rồi nhưng để cho chắc)
+          if (adminUser.id === userId) continue;
+
+          this.notificationService.sendNotification(
+            NotificationType.APPROVAL_UPDATED, // Use same category or maybe SYSTEM/NEW_APPROVAL if we had it
+            'Yêu cầu phê duyệt mới',
+            `${requesterName} vừa gửi yêu cầu "${approval.reason || approval.targetModule}"`,
+            {
+              approvalId: saved.id,
+              requestNumber: saved.requestNumber,
+              type: approval.type,
+              targetModule: approval.targetModule,
+            },
+            adminUser.id,
+          );
+        }
+      })
+      .catch((err) => {
+        this.logger.error('Failed to notify admins about new approval', err);
+      });
+
+    return saved;
   }
 
   async findAll(keyword?: string): Promise<ApprovalRequest[]> {

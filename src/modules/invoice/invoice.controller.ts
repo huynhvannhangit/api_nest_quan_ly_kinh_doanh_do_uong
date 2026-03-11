@@ -25,7 +25,7 @@ export class InvoiceController {
 
   @Post()
   @HttpCode(201)
-  @Permissions(Permission.INVOICE_CREATE)
+  @Permissions(Permission.INVOICE_PAY)
   @ActionLog({
     action: 'CREATE_INVOICE',
     module: 'INVOICE',

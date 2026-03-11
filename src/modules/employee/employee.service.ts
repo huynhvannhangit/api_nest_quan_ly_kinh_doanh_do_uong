@@ -49,57 +49,70 @@ export class EmployeeService {
     return `NV${nextNumber.toString().padStart(3, '0')}`;
   }
 
-  async create(data: CreateEmployeeDto, createdBy: number): Promise<Employee> {
-    try {
-      console.log('=== Creating Employee ===');
-      console.log('Input data:', JSON.stringify(data, null, 2));
-      console.log('Created by user ID:', createdBy);
+  async create(
+    data: CreateEmployeeDto,
+    createdBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(createdBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
-      // Validate userId uniqueness: 1 user chỉ được liên kết với 1 nhân viên
-      if (data.userId) {
-        const existingEmployeeWithUser = await this.employeeRepository.findOne({
-          where: { userId: data.userId },
-        });
-        if (existingEmployeeWithUser) {
-          throw new BadRequestException(
-            'Tài khoản này đã được liên kết với nhân viên khác',
-          );
-        }
-      }
-
-      const employee = new Employee();
-
-      // Assign data first (excluding employeeCode)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { employeeCode: _employeeCode, ...employeeData } = data;
-      Object.assign(employee, employeeData);
-
-      console.log('Employee after data assignment:', employee);
-
-      // Auto-generate employee code (this ensures it won't be overwritten)
-      employee.employeeCode = await this.generateEmployeeCode();
-
-      console.log('Generated employee code:', employee.employeeCode);
-
-      employee.createdBy = createdBy;
-      employee.updatedBy = createdBy;
-
-      console.log('Employee before save:', employee);
-
-      this.validateAge(employeeData.birthDate);
-
-      const result = await this.employeeRepository.save(employee);
-      console.log('Employee created successfully with ID:', result.id);
-      return result;
-    } catch (error) {
-      console.error('=== Error Creating Employee ===');
-
-      console.error('Error message:', (error as Error).message);
-
-      console.error('Error stack:', (error as Error).stack);
-      console.error('Error details:', error);
-      throw error;
+    if (isAdmin) {
+      return this.executeCreate(data, createdBy);
     }
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.CREATE,
+        targetModule: 'Nhân viên',
+        metadata: {
+          serviceName: 'EmployeeService',
+          methodName: 'executeCreate',
+          args: [data],
+          newData: data,
+        },
+        reason: reason || `Thêm nhân viên mới: ${data.fullName}`,
+      },
+      createdBy,
+    );
+  }
+
+  async executeCreate(
+    data: CreateEmployeeDto,
+    createdBy: number,
+  ): Promise<Employee> {
+    // Validate userId uniqueness: 1 user chỉ được liên kết với 1 nhân viên
+    if (data.userId) {
+      const existingEmployeeWithUser = await this.employeeRepository.findOne({
+        where: { userId: data.userId },
+      });
+      if (existingEmployeeWithUser) {
+        throw new BadRequestException(
+          'Tài khoản này đã được liên kết với nhân viên khác',
+        );
+      }
+    }
+
+    const employee = new Employee();
+
+    // Assign data first (excluding employeeCode)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { employeeCode: _employeeCode, ...employeeData } = data;
+    Object.assign(employee, employeeData);
+
+    // Auto-generate employee code
+    employee.employeeCode = await this.generateEmployeeCode();
+
+    employee.createdBy = createdBy;
+    employee.updatedBy = createdBy;
+
+    this.validateAge(employeeData.birthDate);
+
+    return await this.employeeRepository.save(employee);
   }
 
   private validateAge(birthDateString: string | Date | undefined) {

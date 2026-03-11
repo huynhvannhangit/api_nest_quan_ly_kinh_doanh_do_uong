@@ -26,7 +26,39 @@ export class AreaService {
     private readonly approvalsService: ApprovalsService,
   ) {}
 
-  async create(data: CreateAreaDto, createdBy: number): Promise<Area> {
+  async create(
+    data: CreateAreaDto,
+    createdBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(createdBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin) {
+      return this.executeCreate(data, createdBy);
+    }
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.CREATE,
+        targetModule: 'Khu vực',
+        metadata: {
+          serviceName: 'AreaService',
+          methodName: 'executeCreate',
+          args: [data],
+          newData: data,
+        },
+        reason: reason || `Tạo khu vực mới: ${data.name}`,
+      },
+      createdBy,
+    );
+  }
+
+  async executeCreate(data: CreateAreaDto, createdBy: number): Promise<Area> {
     const existingArea = await this.areaRepository.findOne({
       where: { name: data.name },
     });

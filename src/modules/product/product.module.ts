@@ -15,7 +15,11 @@ import { UserModule } from '../user/user.module';
     ApprovalModule,
     UserModule,
   ],
-  providers: [ProductService, ProductHistoryService],
+  providers: [
+    ProductService,
+    ProductHistoryService,
+    { provide: 'ProductService', useExisting: ProductService },
+  ],
   controllers: [ProductController],
   exports: [ProductService],
 })

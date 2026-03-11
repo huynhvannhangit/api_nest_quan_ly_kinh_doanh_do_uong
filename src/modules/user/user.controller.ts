@@ -32,7 +32,7 @@ export class UserController {
 
   @Post()
   @HttpCode(201)
-  @Permissions(Permission.USER_CREATE)
+  @Permissions(Permission.USER_MANAGE)
   create(
     @Body() createUserDto: CreateUserDto,
     @GetCurrentUserId() userId: number,
@@ -56,7 +56,7 @@ export class UserController {
 
   @Patch(':id')
   @HttpCode(200)
-  @Permissions(Permission.USER_UPDATE)
+  @Permissions(Permission.USER_MANAGE)
   update(
     @Param('id') id: string,
     @Body() updateData: UpdateUserDto,
@@ -74,7 +74,7 @@ export class UserController {
 
   @Post(':id/avatar')
   @HttpCode(200)
-  @Permissions(Permission.USER_UPDATE)
+  @Permissions(Permission.USER_MANAGE)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({

@@ -21,7 +21,42 @@ export class CategoryService {
     private readonly approvalsService: ApprovalsService,
   ) {}
 
-  async create(data: Partial<Category>, createdBy: number): Promise<Category> {
+  async create(
+    data: Partial<Category>,
+    createdBy: number,
+    reason?: string,
+  ): Promise<any> {
+    const user = await this.userService.findById(createdBy);
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin) {
+      return this.executeCreate(data, createdBy);
+    }
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.CREATE,
+        targetModule: 'Danh mục',
+        metadata: {
+          serviceName: 'CategoryService',
+          methodName: 'executeCreate',
+          args: [data],
+          newData: data,
+        },
+        reason: reason || `Tạo danh mục mới: ${data.name}`,
+      },
+      createdBy,
+    );
+  }
+
+  async executeCreate(
+    data: Partial<Category>,
+    createdBy: number,
+  ): Promise<Category> {
     const category = this.categoryRepository.create(data);
     category.createdBy = createdBy;
     category.updatedBy = createdBy;

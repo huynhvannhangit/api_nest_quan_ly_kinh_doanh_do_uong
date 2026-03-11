@@ -9,6 +9,7 @@ export enum ApprovalType {
   EMPLOYEE_DELETE = 'EMPLOYEE_DELETE',
   UPDATE = 'UPDATE',
   DELETE = 'DELETE',
+  CREATE = 'CREATE',
 }
 
 export enum ApprovalStatus {
