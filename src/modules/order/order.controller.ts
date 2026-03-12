@@ -131,6 +131,9 @@ export class OrderController {
     @Body('targetTableId') targetTableId: number,
     @GetCurrentUserId() userId: number,
   ) {
+    console.log(
+      `[OrderController] mergeOrder called: id=${id}, targetTableId=${targetTableId} (${typeof targetTableId})`,
+    );
     return this.orderService.mergeOrder(+id, targetTableId, userId);
   }
 

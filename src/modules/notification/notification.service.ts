@@ -62,60 +62,77 @@ export class NotificationService implements OnModuleInit {
     }
   }
 
-  sendNotification(
+  async sendNotification(
     type: NotificationType,
     title: string,
     message: string,
     data?: Record<string, any>,
     userId?: number,
-  ): void {
-    const payload: NotificationPayload = {
-      type,
-      title,
-      message,
-      data,
-      userId,
-      createdAt: new Date().toISOString(),
-    };
+  ): Promise<void> {
+    const createdAt = new Date().toISOString();
 
-    // 1. Emit WebSocket (High Priority - Realtime)
-    this.gateway.emitNotification(payload);
-
-    // 2. Save to SQL Database (Background)
-    void this.notificationRepository
-      .save({
+    // 1. Save to SQL Database (Required for ID)
+    let savedNotification: Notification | null = null;
+    try {
+      savedNotification = await this.notificationRepository.save({
         type,
         title,
         message,
         data,
         userId,
-      })
-      .then(() => {
-        this.logger.log(`Notification saved to SQL: [${type}] ${title}`);
-      })
-      .catch((error) => {
-        this.logger.error('Failed to save notification to SQL', error);
       });
+      this.logger.log(
+        `Notification saved to SQL: [${type}] ${title} (ID: ${savedNotification.id})`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to save notification to SQL', error);
+    }
 
-    // 3. Save to Firestore (Background)
-    if (this.isFirebaseEnabled && this.db) {
+    const payload: NotificationPayload = {
+      id: savedNotification?.id,
+      type,
+      title,
+      message,
+      data,
+      userId,
+      createdAt,
+    };
+
+    // 2. Emit WebSocket (Realtime)
+    this.gateway.emitNotification(payload);
+
+    // 3. Save to Firestore (Background) - Use SQL ID as Doc ID
+    if (this.isFirebaseEnabled && this.db && savedNotification) {
       void this.db
         .collection('notifications')
-        .add(payload)
+        .doc(savedNotification.id.toString())
+        .set({
+          ...payload,
+          read: false, // Initial state
+        })
         .then(() => {
           this.logger.log(
-            `Notification saved to Firestore: [${type}] ${title}`,
+            `Notification saved to Firestore: [${type}] ${title} (ID: ${savedNotification.id})`,
           );
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           this.logger.error('Failed to save notification to Firestore', error);
+          if (
+            error instanceof Error &&
+            error.message.includes('PERMISSION_DENIED')
+          ) {
+            this.logger.warn(
+              'Firestore API is disabled or permission denied. Disabling Firestore persistence permanently for this session.',
+            );
+            this.isFirebaseEnabled = false;
+          }
         });
     }
   }
 
   async findAll(userId: number, page = 1, limit = 20) {
     const [items, total] = await this.notificationRepository.findAndCount({
-      where: [{ userId }, { userId: IsNull() }], // User specific + Broadcast
+      where: [{ userId }, { userId: IsNull() }],
       order: { createdAt: 'DESC' },
       take: limit,
       skip: (page - 1) * limit,
@@ -133,11 +150,34 @@ export class NotificationService implements OnModuleInit {
   }
 
   async markAsRead(id: number, userId: number): Promise<void> {
+    await this.notificationRepository.update(
+      { id, userId: IsNull() },
+      { isRead: true },
+    );
     await this.notificationRepository.update({ id, userId }, { isRead: true });
+
+    // Sync to Firestore
+    if (this.isFirebaseEnabled && this.db) {
+      void this.db
+        .collection('notifications')
+        .doc(id.toString())
+        .update({ read: true })
+        .catch(() => {
+          /* Ignore error if doc doesn't exist */
+        });
+    }
   }
 
   async markAllAsRead(userId: number): Promise<void> {
+    await this.notificationRepository.update(
+      { userId: IsNull() },
+      { isRead: true },
+    );
     await this.notificationRepository.update({ userId }, { isRead: true });
+
+    // Syncing "All as read" to Firestore is expensive if not using a different structure,
+    // but we can at least ensure future fetches from SQL are correct.
+    // For Firestore realtime sync, usually we'd delete or update docs.
   }
 
   async findOne(id: number, userId: number): Promise<Notification | null> {
@@ -146,5 +186,14 @@ export class NotificationService implements OnModuleInit {
 
   async delete(id: number, userId: number): Promise<void> {
     await this.notificationRepository.delete({ id, userId });
+
+    // Sync to Firestore
+    if (this.isFirebaseEnabled && this.db) {
+      void this.db
+        .collection('notifications')
+        .doc(id.toString())
+        .delete()
+        .catch(() => {});
+    }
   }
 }

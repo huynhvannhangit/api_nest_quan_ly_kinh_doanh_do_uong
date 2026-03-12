@@ -88,6 +88,24 @@ export class Invoice extends BaseEntity {
   @Column({ name: 'paid_at', nullable: true })
   paidAt: Date;
 
+  @Column({
+    name: 'received_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  receivedAmount: number;
+
+  @Column({
+    name: 'change_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  changeAmount: number;
+
   @OneToMany(() => InvoiceItem, (item: InvoiceItem) => item.invoice, {
     cascade: true,
   })

@@ -65,7 +65,12 @@ export class InvoiceController {
   })
   processPayment(
     @Param('id') id: string,
-    @Body() data: { paymentMethod: PaymentMethod },
+    @Body()
+    data: {
+      paymentMethod: PaymentMethod;
+      receivedAmount?: number;
+      changeAmount?: number;
+    },
     @GetCurrentUserId() userId: number,
   ): Promise<Invoice> {
     return this.invoiceService.processPayment(+id, data, userId);

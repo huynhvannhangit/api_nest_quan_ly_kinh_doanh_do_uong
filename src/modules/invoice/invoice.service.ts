@@ -137,7 +137,11 @@ export class InvoiceService {
 
   async processPayment(
     id: number,
-    data: { paymentMethod: PaymentMethod },
+    data: {
+      paymentMethod: PaymentMethod;
+      receivedAmount?: number;
+      changeAmount?: number;
+    },
     updatedBy: number,
   ): Promise<Invoice> {
     const invoice = await this.findOne(id);
@@ -148,6 +152,8 @@ export class InvoiceService {
     // Update invoice
     invoice.status = InvoiceStatus.PAID;
     invoice.paymentMethod = data.paymentMethod;
+    invoice.receivedAmount = data.receivedAmount || 0;
+    invoice.changeAmount = data.changeAmount || 0;
     invoice.paidAt = new Date();
     invoice.updatedBy = updatedBy;
 

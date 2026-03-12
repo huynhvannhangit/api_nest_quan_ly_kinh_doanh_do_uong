@@ -7,6 +7,7 @@ export enum NotificationType {
 }
 
 export interface NotificationPayload {
+  id?: number; // Database ID
   type: NotificationType;
   title: string;
   message: string;
