@@ -102,6 +102,38 @@ export class OrderController {
     return this.orderService.addItems(+id, items, userId, notes);
   }
 
+  @Post(':id/transfer-table')
+  @HttpCode(200)
+  @Permissions(Permission.ORDER_UPDATE)
+  @ActionLog({
+    action: 'TRANSFER_TABLE',
+    module: 'ORDER',
+    description: 'Chuyển bàn cho đơn hàng',
+  })
+  transferTable(
+    @Param('id') id: string,
+    @Body('targetTableId') targetTableId: number,
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.orderService.transferTable(+id, targetTableId, userId);
+  }
+
+  @Post(':id/merge-order')
+  @HttpCode(200)
+  @Permissions(Permission.ORDER_UPDATE)
+  @ActionLog({
+    action: 'MERGE_ORDER',
+    module: 'ORDER',
+    description: 'Gộp đơn hàng',
+  })
+  mergeOrder(
+    @Param('id') id: string,
+    @Body('targetTableId') targetTableId: number,
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.orderService.mergeOrder(+id, targetTableId, userId);
+  }
+
   @Delete(':id')
   @HttpCode(200)
   @Permissions(Permission.ORDER_DELETE)
@@ -112,5 +144,21 @@ export class OrderController {
   })
   remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
     return this.orderService.remove(+id, userId);
+  }
+
+  @Delete(':id/items/:productId')
+  @HttpCode(200)
+  @Permissions(Permission.ORDER_UPDATE)
+  @ActionLog({
+    action: 'REMOVE_ORDER_ITEM',
+    module: 'ORDER',
+    description: 'Xoá món khỏi đơn hàng',
+  })
+  removeItem(
+    @Param('id') id: string,
+    @Param('productId') productId: string,
+    @GetCurrentUserId() userId: number,
+  ) {
+    return this.orderService.removeItem(+id, +productId, userId);
   }
 }

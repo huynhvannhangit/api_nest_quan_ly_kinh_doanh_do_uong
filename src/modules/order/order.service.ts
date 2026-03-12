@@ -142,27 +142,50 @@ export class OrderService {
       order.notes = notes;
     }
 
-    const newItems = items.map((item) => {
-      const orderItem = new OrderItem();
-      orderItem.quantity = item.quantity;
-      orderItem.price = item.price;
-      orderItem.notes = item.notes ?? null;
-      orderItem.product = { id: item.productId } as Product;
-      orderItem.order = order;
-      return orderItem;
-    });
+    const currentItems = order.items || [];
 
-    await this.orderItemRepository.save(newItems);
+    for (const itemDto of items) {
+      const existingItem = currentItems.find(
+        (i) => i.product.id === Number(itemDto.productId),
+      );
 
-    // Recalculate total price
-    const allItems = [...(order.items || []), ...newItems];
-    order.totalPrice = allItems.reduce(
+      if (existingItem) {
+        // Update existing item quantity
+        existingItem.quantity =
+          Number(existingItem.quantity) + Number(itemDto.quantity);
+        await this.orderItemRepository.save(existingItem);
+      } else {
+        // Create new item
+        const orderItem = new OrderItem();
+        orderItem.quantity = itemDto.quantity;
+        orderItem.price = itemDto.price;
+        orderItem.notes = itemDto.notes ?? null;
+        orderItem.product = { id: itemDto.productId } as Product;
+        orderItem.order = order;
+        const savedItem = await this.orderItemRepository.save(orderItem);
+        currentItems.push(savedItem);
+      }
+    }
+
+    // Recalculate total price and update items collection
+    order.items = currentItems;
+    order.totalPrice = currentItems.reduce(
       (sum, item) => sum + Number(item.price) * Number(item.quantity),
       0,
     );
     order.updatedBy = userId;
 
-    return this.orderRepository.save(order);
+    const savedOrder = await this.orderRepository.save(order);
+
+    // Send notification
+    this.notificationService.sendNotification(
+      NotificationType.ORDER_STATUS_UPDATED,
+      'Thêm món vào đơn',
+      `Món mới đã được thêm vào đơn hàng ${savedOrder.orderNumber}`,
+      { orderId: savedOrder.id },
+    );
+
+    return this.findOne(savedOrder.id);
   }
 
   async cancel(id: number, userId: number): Promise<Order> {
@@ -187,10 +210,188 @@ export class OrderService {
     return savedOrder;
   }
 
+  async transferTable(
+    id: number,
+    targetTableId: number,
+    userId: number,
+  ): Promise<Order> {
+    const order = await this.findOne(id);
+    if (
+      order.status === OrderStatus.COMPLETED ||
+      order.status === OrderStatus.CANCELLED
+    ) {
+      throw new Error('Cannot transfer a completed or cancelled order');
+    }
+
+    const sourceTableId = order.tableId;
+    if (sourceTableId === targetTableId) {
+      throw new Error('Target table is the same as source table');
+    }
+
+    // Check if target table is available
+    const targetTable = await this.tableService.findOne(targetTableId);
+    if (targetTable.status !== TableStatus.AVAILABLE) {
+      throw new Error('Target table is not available');
+    }
+
+    // Update order
+    order.tableId = targetTableId;
+    order.updatedBy = userId;
+    const savedOrder = await this.orderRepository.save(order);
+
+    // Update tables
+    if (sourceTableId) {
+      await this.tableService.executeUpdate(
+        sourceTableId,
+        { status: TableStatus.AVAILABLE },
+        userId,
+      );
+    }
+
+    await this.tableService.executeUpdate(
+      targetTableId,
+      { status: TableStatus.OCCUPIED },
+      userId,
+    );
+
+    // Send notification
+    this.notificationService.sendNotification(
+      NotificationType.ORDER_STATUS_UPDATED,
+      'Chuyển bàn',
+      `Đơn hàng ${order.orderNumber} đã được chuyển từ bàn #${sourceTableId} sang bàn #${targetTableId}`,
+      { orderId: order.id, sourceTableId, targetTableId },
+    );
+
+    return savedOrder;
+  }
+
+  async mergeOrder(
+    sourceOrderId: number,
+    targetTableId: number,
+    userId: number,
+  ): Promise<Order> {
+    const sourceOrder = await this.findOne(sourceOrderId);
+    const targetOrder = await this.findActiveByTable(targetTableId);
+
+    if (!targetOrder) {
+      throw new Error('Target table has no active order');
+    }
+
+    if (
+      sourceOrder.status === OrderStatus.COMPLETED ||
+      sourceOrder.status === OrderStatus.CANCELLED
+    ) {
+      throw new Error('Source order is not active');
+    }
+    if (
+      targetOrder.status === OrderStatus.COMPLETED ||
+      targetOrder.status === OrderStatus.CANCELLED
+    ) {
+      throw new Error('Target order is not active');
+    }
+
+    // Move items
+    const sourceItems = await this.orderItemRepository.find({
+      where: { order: { id: sourceOrderId } },
+    });
+
+    for (const item of sourceItems) {
+      item.order = targetOrder;
+    }
+    await this.orderItemRepository.save(sourceItems);
+
+    // Recalculate target order total price after moving items
+    const allItems = await this.orderItemRepository.find({
+      where: { order: { id: targetOrder.id } },
+    });
+    targetOrder.totalPrice = allItems.reduce(
+      (sum, item) => sum + Number(item.price) * Number(item.quantity),
+      0,
+    );
+    targetOrder.updatedBy = userId;
+    const savedTargetOrder = await this.orderRepository.save(targetOrder);
+
+    // Cancel source order
+    sourceOrder.status = OrderStatus.CANCELLED;
+    sourceOrder.notes =
+      (sourceOrder.notes ? sourceOrder.notes + ' ' : '') +
+      `(Đã gộp vào đơn ${targetOrder.orderNumber})`;
+    sourceOrder.updatedBy = userId;
+    await this.orderRepository.save(sourceOrder);
+
+    // Update source table status
+    if (sourceOrder.tableId) {
+      await this.tableService.executeUpdate(
+        sourceOrder.tableId,
+        { status: TableStatus.AVAILABLE },
+        userId,
+      );
+    }
+
+    // Send notification
+    this.notificationService.sendNotification(
+      NotificationType.ORDER_STATUS_UPDATED,
+      'Gộp đơn hàng',
+      `Đơn hàng ${sourceOrder.orderNumber} đã được gộp vào đơn hàng ${targetOrder.orderNumber}`,
+      { sourceOrderId, targetOrderId: targetOrder.id },
+    );
+
+    return savedTargetOrder;
+  }
+
   async remove(id: number, deletedBy: number): Promise<void> {
     const order = await this.findOne(id);
     order.deletedBy = deletedBy;
     await this.orderRepository.save(order);
     await this.orderRepository.softRemove(order);
+  }
+
+  async removeItem(
+    id: number,
+    productId: number,
+    userId: number,
+  ): Promise<Order> {
+    const order = await this.findOne(id);
+    if (
+      order.status === OrderStatus.COMPLETED ||
+      order.status === OrderStatus.CANCELLED
+    ) {
+      throw new Error(
+        'Cannot remove items from a completed or cancelled order',
+      );
+    }
+
+    const orderItem = await this.orderItemRepository.findOne({
+      where: {
+        order: { id },
+        product: { id: productId },
+      },
+    });
+
+    if (!orderItem) {
+      throw new Error('Item not found in order');
+    }
+
+    await this.orderItemRepository.remove(orderItem);
+
+    // Refresh order items and recalculate total
+    const updatedOrder = await this.findOne(id);
+    updatedOrder.totalPrice = (updatedOrder.items || []).reduce(
+      (sum, item) => sum + Number(item.price) * Number(item.quantity),
+      0,
+    );
+    updatedOrder.updatedBy = userId;
+
+    const savedOrder = await this.orderRepository.save(updatedOrder);
+
+    // Send notification
+    this.notificationService.sendNotification(
+      NotificationType.ORDER_STATUS_UPDATED,
+      'Xoá món khỏi đơn',
+      `Món ăn đã được xoá khỏi đơn hàng ${savedOrder.orderNumber}`,
+      { orderId: savedOrder.id, productId },
+    );
+
+    return savedOrder;
   }
 }
