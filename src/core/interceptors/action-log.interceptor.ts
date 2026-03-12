@@ -33,8 +33,16 @@ export class ActionLogInterceptor implements NestInterceptor {
 
     const request = context.switchToHttp().getRequest<ExpressRequest>();
     const user = request.user as { id: number } | undefined;
-    const { method, url, ip } = request;
+    const { method, url } = request;
+    let { ip } = request;
     const userAgent = request.get('user-agent') || '';
+
+    // Normalize IPv6 loopback and mapped IPv4
+    if (ip === '::1' || ip === '::ffff:127.0.0.1') {
+      ip = '127.0.0.1';
+    } else if (ip && ip.startsWith('::ffff:')) {
+      ip = ip.replace('::ffff:', '');
+    }
 
     return next.handle().pipe(
       tap(() => {

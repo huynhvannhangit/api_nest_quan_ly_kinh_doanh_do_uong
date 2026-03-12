@@ -43,6 +43,8 @@ export class PaymentService {
     let cleanIp = ipAddr || '127.0.0.1';
     if (cleanIp === '::1' || cleanIp === '::ffff:127.0.0.1') {
       cleanIp = '127.0.0.1';
+    } else if (cleanIp.startsWith('::ffff:')) {
+      cleanIp = cleanIp.replace('::ffff:', '');
     }
 
     const urlString = this.vnpay.buildPaymentUrl({

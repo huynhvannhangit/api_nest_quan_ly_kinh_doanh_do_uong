@@ -83,7 +83,7 @@ async function main() {
   const tunnelProcess = spawn(exePath, [
     'tunnel',
     '--url',
-    `http://localhost:${process.env.PORT || 9999}`,
+    `http://127.0.0.1:${process.env.PORT || 9999}`,
   ]);
 
   let isNestjsStarted = false;
