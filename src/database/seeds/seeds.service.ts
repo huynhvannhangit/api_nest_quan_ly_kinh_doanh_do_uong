@@ -40,41 +40,26 @@ export class SeedsService implements OnModuleInit {
           Permission.AREA_CREATE,
           Permission.AREA_VIEW_ID,
           Permission.AREA_UPDATE,
-          Permission.AREA_DELETE,
           Permission.TABLE_VIEW_ALL,
           Permission.TABLE_CREATE,
           Permission.TABLE_VIEW_ID,
           Permission.TABLE_UPDATE,
-          Permission.TABLE_DELETE,
           Permission.CATEGORY_VIEW_ALL,
           Permission.CATEGORY_CREATE,
           Permission.CATEGORY_VIEW_ID,
           Permission.CATEGORY_UPDATE,
-          Permission.CATEGORY_DELETE,
           Permission.PRODUCT_VIEW_ALL,
           Permission.PRODUCT_CREATE,
           Permission.PRODUCT_VIEW_ID,
           Permission.PRODUCT_UPDATE,
-          Permission.PRODUCT_DELETE,
           Permission.USER_VIEW_ALL,
           Permission.USER_VIEW_ID,
-          Permission.USER_DELETE,
-          Permission.USER_MANAGE,
           Permission.EMPLOYEE_VIEW_ALL,
-          Permission.EMPLOYEE_CREATE,
           Permission.EMPLOYEE_VIEW_ID,
-          Permission.EMPLOYEE_UPDATE,
-          Permission.EMPLOYEE_DELETE,
-          Permission.ROLE_VIEW_ALL,
-          Permission.ROLE_CREATE,
-          Permission.ROLE_VIEW_ID,
-          Permission.ROLE_UPDATE,
-          Permission.ROLE_DELETE,
           Permission.ORDER_VIEW_ALL,
           Permission.ORDER_CREATE,
           Permission.ORDER_VIEW_ID,
           Permission.ORDER_UPDATE,
-          Permission.ORDER_DELETE,
           Permission.ORDER_CANCEL,
           Permission.INVOICE_VIEW_ALL,
           Permission.INVOICE_VIEW_ID,
@@ -82,11 +67,6 @@ export class SeedsService implements OnModuleInit {
           Permission.INVOICE_PAY,
           Permission.STATISTICS_VIEW_ALL,
           Permission.STATISTICS_EXPORT,
-          Permission.AI_ASSISTANT_CHAT,
-          Permission.APPROVAL_VIEW_ALL,
-          Permission.APPROVAL_VIEW_ID,
-          Permission.APPROVAL_MANAGE,
-          Permission.LOGGING_VIEW_ALL,
         ],
       },
       {
@@ -112,7 +92,6 @@ export class SeedsService implements OnModuleInit {
           Permission.INVOICE_CANCEL,
           Permission.INVOICE_PAY,
           Permission.STATISTICS_VIEW_ALL,
-          Permission.AI_ASSISTANT_CHAT,
         ],
       },
       {
@@ -148,13 +127,6 @@ export class SeedsService implements OnModuleInit {
           isActive: true,
         });
         this.logger.log(`Created default role: ${roleData.name}`);
-      } else {
-        // Update existing role permissions to match seed
-        await this.roleService.update(existingRole.id, {
-          description: roleData.description,
-          permissions: roleData.permissions,
-        });
-        this.logger.log(`Updated permissions for role: ${roleData.name}`);
       }
     }
   }

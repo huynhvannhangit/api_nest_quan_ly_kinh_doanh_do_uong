@@ -9,6 +9,7 @@ import {
   Delete,
   Query,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -18,8 +19,11 @@ import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
 
 @Controller('employee')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class EmployeeController {
   constructor(private readonly employeeService: EmployeeService) {}
 

@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { TableService } from './table.service';
 import { CreateTableDto } from './dto/create-table.dto';
@@ -16,8 +17,11 @@ import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { ActionLog } from '../../core/decorators/action-log.decorator';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
 
 @Controller('table')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TableController {
   constructor(private readonly tableService: TableService) {}
 

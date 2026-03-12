@@ -10,6 +10,7 @@ import {
   UploadedFile,
   Query,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -21,8 +22,11 @@ import { ActionLog } from '../../core/decorators/action-log.decorator';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
 import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
 
 @Controller('product')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
