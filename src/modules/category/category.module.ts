@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationModule } from '../notification/notification.module';
 import { CategoryService } from './category.service';
@@ -12,7 +12,7 @@ import { ApprovalModule } from '../approval/approval.module';
   imports: [
     TypeOrmModule.forFeature([Category, Product]),
     UserModule,
-    ApprovalModule,
+    forwardRef(() => ApprovalModule),
     NotificationModule,
   ],
   providers: [

@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateAreaDto } from './dto/create-area.dto';
 import { UpdateAreaDto } from './dto/update-area.dto';
@@ -24,7 +26,9 @@ export class AreaService {
     private readonly areaRepository: Repository<Area>,
     @InjectRepository(Table)
     private readonly tableRepository: Repository<Table>,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
+    @Inject(forwardRef(() => ApprovalsService))
     private readonly approvalsService: ApprovalsService,
     private readonly notificationService: NotificationService,
   ) {}

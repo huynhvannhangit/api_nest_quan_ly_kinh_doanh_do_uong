@@ -1,10 +1,10 @@
+/* cspell:disable */
 import {
   Injectable,
   NotFoundException,
   Logger,
   ForbiddenException,
-  Inject,
-  forwardRef,
+  Type,
   BadRequestException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -21,6 +21,13 @@ import { MESSAGES } from '../../common/constants/messages.constant';
 import { Permission } from '../../common/enums/permission.enum';
 import { Role } from '../role/entities/role.entity';
 import { UserService } from '../user/user.service';
+import { InvoiceService } from '../invoice/invoice.service';
+import { TableService } from '../table/table.service';
+import { ProductService } from '../product/product.service';
+import { EmployeeService } from '../employee/employee.service';
+import { AreaService } from '../area/area.service';
+import { CategoryService } from '../category/category.service';
+import { RoleService } from '../role/roles.service';
 
 interface ApprovalMetadata {
   serviceName: string;
@@ -49,9 +56,11 @@ export class ApprovalsService {
     private readonly userRepository: Repository<User>,
     private readonly moduleRef: ModuleRef,
     private readonly notificationService: NotificationService,
-    @Inject(forwardRef(() => UserService))
-    private readonly userService: UserService,
   ) {}
+
+  private async getUserService(): Promise<UserService> {
+    return this.moduleRef.get(UserService, { strict: false });
+  }
 
   async create(data: any, userId: number): Promise<ApprovalRequest> {
     const requestNumber = `REQ-${Date.now()}`;
@@ -64,19 +73,19 @@ export class ApprovalsService {
     approval.status = ApprovalStatus.PENDING;
     const saved = await this.approvalRepository.save(approval);
 
-    // Thông báo cho Admin/Chủ cửa hàng (Background)
-    void this.userService
-      .findAdmins()
+    // Thong bao cho Admin/Chu cua hang (Background)
+    void this.getUserService()
+      .then((userService) => userService.findAdmins())
       .then((admins) => {
-        const requesterName = approval.requestedBy?.fullName || 'Nhân viên';
+        const requesterName = approval.requestedBy?.fullName || 'Nhan vien';
         for (const adminUser of admins) {
-          // Tránh gửi cho chính mình nếu admin là người gửi (thực tế Admin bypass rồi nhưng để cho chắc)
+          // Tranh gui cho chinh minh neu admin la nguoi gui
           if (adminUser.id === userId) continue;
 
           void this.notificationService.sendNotification(
-            NotificationType.APPROVAL_UPDATED, // Use same category or maybe SYSTEM/NEW_APPROVAL if we had it
-            'Yêu cầu phê duyệt mới',
-            `${requesterName} vừa gửi yêu cầu "${approval.reason || approval.targetModule}"`,
+            NotificationType.APPROVAL_UPDATED,
+            'Yeu cau phe duyet moi',
+            `${requesterName} vua gui yeu cau "${approval.reason || approval.targetModule}"`,
             {
               approvalId: saved.id,
               requestNumber: saved.requestNumber,
@@ -212,6 +221,19 @@ export class ApprovalsService {
     return saved;
   }
 
+  private get serviceClassMap(): Record<string, Type<any>> {
+    return {
+      InvoiceService,
+      TableService,
+      UserService,
+      ProductService,
+      EmployeeService,
+      AreaService,
+      CategoryService,
+      RoleService,
+    };
+  }
+
   private async executeAction(approval: ApprovalRequest): Promise<void> {
     const metadata = approval.metadata as unknown as ApprovalMetadata;
     if (!metadata || !metadata.serviceName || !metadata.methodName) {
@@ -222,10 +244,16 @@ export class ApprovalsService {
     }
 
     try {
-      // Resolve the service dynamically
-      // metadata.serviceName should be the class name or token
+      const serviceClass = this.serviceClassMap[metadata.serviceName];
+      if (!serviceClass) {
+        throw new Error(
+          `No class mapping found for service '${metadata.serviceName}'. Register it in serviceClassMap.`,
+        );
+      }
+
+      // Resolve the service by its CLASS token (strict:false = search globally)
       const service = this.moduleRef.get<Record<string, unknown>>(
-        metadata.serviceName,
+        serviceClass,
         {
           strict: false,
         },
@@ -245,7 +273,8 @@ export class ApprovalsService {
       // Execute with arguments from metadata
       const args = metadata.args || [];
       // Pass reviewedBy.id and a flag to skip broadcast notifications
-      await method.apply(service, [...args, approval.reviewedBy.id, true]);
+      const methodFn = method as (...params: unknown[]) => Promise<unknown>;
+      await methodFn.apply(service, [...args, approval.reviewedBy.id, true]);
       this.logger.log(
         `Successfully executed ${metadata.serviceName}.${methodName} for approval ${approval.requestNumber}`,
       );

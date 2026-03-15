@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -23,9 +28,12 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(InvoiceItem)
     private readonly invoiceItemRepository: Repository<InvoiceItem>,
+    @Inject(forwardRef(() => TableService))
     private readonly tableService: TableService,
     private readonly orderService: OrderService,
+    @Inject(forwardRef(() => ApprovalsService))
     private readonly approvalsService: ApprovalsService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {}
 
@@ -221,7 +229,7 @@ export class InvoiceService {
     return this.findOne(id);
   }
 
-  async cancel(id: number, userId: number): Promise<Invoice> {
+  async cancel(id: number, userId: number, reason?: string): Promise<Invoice> {
     const invoice = await this.findOne(id);
 
     // Chỉ hủy hóa đơn ĐÃ THANH TOÁN thì mới cần duyệt (nếu không phải admin)
@@ -235,15 +243,20 @@ export class InvoiceService {
         (role?.name === 'ADMIN' || role?.name === 'CHỦ CỬA HÀNG');
 
       if (!isPrivileged) {
+        const approvalReason = reason?.trim()
+          ? reason.trim()
+          : `Yêu cầu hủy hóa đơn đã thanh toán: ${invoice.invoiceNumber}`;
+
         await this.approvalsService.create(
           {
             targetModule: 'Hóa đơn',
-            type: ApprovalType.DELETE,
-            reason: `Yêu cầu hủy hóa đơn đã thanh toán: ${invoice.invoiceNumber}`,
+            type: ApprovalType.INVOICE_CANCEL,
+            reason: approvalReason,
             metadata: {
               serviceName: 'InvoiceService',
               methodName: 'executeCancel',
               args: [invoice.id, userId],
+              invoiceNumber: invoice.invoiceNumber,
             },
           },
           userId,

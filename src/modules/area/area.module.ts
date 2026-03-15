@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationModule } from '../notification/notification.module';
 import { AreaService } from './area.service';
@@ -11,7 +11,7 @@ import { UserModule } from '../user/user.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Area, Table]),
-    ApprovalModule,
+    forwardRef(() => ApprovalModule),
     UserModule,
     NotificationModule,
   ],

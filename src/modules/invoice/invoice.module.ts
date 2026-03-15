@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InvoiceService } from './invoice.service';
 import { InvoiceController } from './invoice.controller';
@@ -14,7 +14,7 @@ import { UserModule } from '../user/user.module';
     TypeOrmModule.forFeature([Invoice, InvoiceItem]),
     TableModule,
     OrderModule,
-    ApprovalModule,
+    forwardRef(() => ApprovalModule),
     UserModule,
   ],
   providers: [InvoiceService],

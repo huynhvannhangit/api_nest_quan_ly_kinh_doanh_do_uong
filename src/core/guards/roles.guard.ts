@@ -1,3 +1,4 @@
+/* cspell:disable */
 import {
   Injectable,
   CanActivate,
@@ -5,7 +6,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { Reflector, ModuleRef } from '@nestjs/core';
 import { UserService } from '../../modules/user/user.service';
 import { User } from '../../modules/user/entities/user.entity';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -18,7 +19,7 @@ export class RolesGuard implements CanActivate {
 
   constructor(
     private reflector: Reflector,
-    private userService: UserService,
+    private moduleRef: ModuleRef,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -40,7 +41,7 @@ export class RolesGuard implements CanActivate {
       user: { id?: number; sub?: number };
       params: Record<string, string>;
       method: string;
-      body?: any;
+      body?: Record<string, unknown>;
     } = context.switchToHttp().getRequest();
 
     const userPayload = request.user;
@@ -50,7 +51,13 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    const user: User | undefined = await this.userService.findById(userId);
+    const userService = this.moduleRef.get(UserService, { strict: false });
+    if (!userService) {
+      this.logger.error('UserService not found in current context');
+      return false;
+    }
+
+    const user: User | undefined = await userService.findById(userId);
     if (!user || user.status !== ('ACTIVE' as any)) {
       return false;
     }

@@ -30,6 +30,7 @@ export class RoleService implements OnModuleInit {
     @InjectRepository(Role) private roleRepository: Repository<Role>,
     @Inject(forwardRef(() => ApprovalsService))
     private readonly approvalsService: ApprovalsService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     private readonly notificationService: NotificationService,
   ) {}

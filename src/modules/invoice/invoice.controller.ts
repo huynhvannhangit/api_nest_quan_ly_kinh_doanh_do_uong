@@ -86,8 +86,9 @@ export class InvoiceController {
   })
   cancel(
     @Param('id') id: string,
+    @Body() body: { reason?: string },
     @GetCurrentUserId() userId: number,
   ): Promise<Invoice> {
-    return this.invoiceService.cancel(+id, userId);
+    return this.invoiceService.cancel(+id, userId, body?.reason);
   }
 }
