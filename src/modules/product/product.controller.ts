@@ -79,14 +79,14 @@ export class ProductController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.PRODUCT_VIEW_ALL)
+  @Permissions(Permission.PRODUCT_VIEW)
   findAll(@Query('keyword') keyword?: string) {
     return this.productService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.PRODUCT_VIEW_ID)
+  @Permissions(Permission.PRODUCT_VIEW)
   findOne(@Param('id') id: string) {
     return this.productService.findOne(+id);
   }

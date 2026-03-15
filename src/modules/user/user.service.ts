@@ -2,17 +2,28 @@ import {
   Injectable,
   ConflictException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserStatus } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserAdminDto, UpdateUserAdminDto } from './dto/admin-user.dto';
 import { Employee, EmployeeStatus } from '../employee/entities/employee.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { EmailService } from '../../core/email/email.service';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { ApprovalsService } from '../approval/approvals.service';
+import {
+  ApprovalRequest,
+  ApprovalType,
+} from '../approval/entities/approval-request.entity';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/dto/notification.dto';
+import { Role } from '../role/entities/role.entity';
 
 @Injectable()
 export class UserService {
@@ -22,13 +33,52 @@ export class UserService {
     @InjectRepository(Employee)
     private employeeRepository: Repository<Employee>,
     private emailService: EmailService,
+    @Inject(forwardRef(() => ApprovalsService))
+    private readonly approvalsService: ApprovalsService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(
-    createUserDto: CreateUserDto,
+    createUserDto: CreateUserDto | CreateUserAdminDto,
     createdBy?: number,
+    reason?: string,
+  ): Promise<User | ApprovalRequest> {
+    const user = createdBy ? await this.findById(createdBy) : null;
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin || !createdBy) {
+      return this.executeCreate(createUserDto, createdBy);
+    }
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.CREATE,
+        targetModule: 'Tài khoản',
+        metadata: {
+          serviceName: 'UserService',
+          methodName: 'executeCreate',
+          args: [createUserDto],
+          newData: createUserDto,
+        },
+        reason: reason || `Tạo tài khoản mới: ${createUserDto.email}`,
+      },
+      createdBy,
+    );
+  }
+
+  async executeCreate(
+    createUserDto: CreateUserDto | CreateUserAdminDto,
+    createdBy?: number,
+    skipNotification = false,
   ): Promise<User> {
-    const { email, password, roleId, ...rest } = createUserDto;
+    const data = { ...createUserDto } as CreateUserAdminDto;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { email, password, reason: _reason, ...rest } = data;
+    const roleId = data.roleId;
 
     const existingUser = await this.usersRepository.findOne({
       where: { email },
@@ -62,6 +112,16 @@ export class UserService {
       savedUser.fullName,
       verificationToken,
     );
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Tài khoản mới',
+        `Tài khoản "${savedUser.email}" đã được tạo.`,
+        { type: 'USER', action: 'CREATE', id: savedUser.id },
+      );
+    }
 
     return savedUser;
   }
@@ -184,22 +244,56 @@ export class UserService {
 
   async update(
     id: number,
-    updateUserDto: UpdateUserDto,
+    updateUserDto: UpdateUserDto | UpdateUserAdminDto,
     updatedBy?: number,
-  ): Promise<User | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { roleId, role, ...rest } = updateUserDto;
+    reason?: string,
+  ): Promise<User | ApprovalRequest | undefined> {
+    const user = updatedBy ? await this.findById(updatedBy) : null;
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
 
-    const updatePayload: Record<string, any> = {
-      ...rest,
-      updatedBy,
-    };
-
-    if (roleId) {
-      updatePayload.role = { id: roleId };
+    // Allow user to update their own profile without approval (e.g. upload avatar)
+    if (isAdmin || !updatedBy || updatedBy === id) {
+      return this.executeUpdate(id, updateUserDto, updatedBy);
     }
 
-    if (updateUserDto.status === UserStatus.ACTIVE) {
+    const oldData = await this.findById(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.UPDATE,
+        targetModule: 'Tài khoản',
+        metadata: {
+          serviceName: 'UserService',
+          methodName: 'executeUpdate',
+          args: [id, updateUserDto],
+          oldData,
+          newData: updateUserDto,
+        },
+        reason: reason || `Cập nhật tài khoản: ${oldData?.email || id}`,
+      },
+      updatedBy,
+    );
+  }
+
+  async executeUpdate(
+    id: number,
+    updateUserDto: UpdateUserDto | UpdateUserAdminDto,
+    updatedBy?: number,
+    skipNotification = false,
+  ): Promise<User | undefined> {
+    const user = await this.findById(id);
+    if (!user) return undefined;
+
+    const data = { ...updateUserDto } as UpdateUserAdminDto;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { roleId, role, reason: _reason, password, ...rest } = data;
+
+    // Check if employee resignation prevents unlocking
+    if (rest.status === UserStatus.ACTIVE) {
       const employee = await this.employeeRepository.findOne({
         where: { userId: id },
       });
@@ -210,13 +304,88 @@ export class UserService {
       }
     }
 
-    await this.usersRepository.update(id, updatePayload);
-    return this.findById(id);
+    // Hash password if changed
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    // Update fields
+    Object.assign(user, rest);
+    if (updatedBy) {
+      user.updatedBy = updatedBy;
+    }
+
+    if (roleId) {
+      user.role = { id: roleId } as Role;
+    }
+
+    const savedUser = await this.usersRepository.save(user);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Cập nhật tài khoản',
+        `Thông tin tài khoản "${savedUser.email}" đã được cập nhật.`,
+        { type: 'USER', action: 'UPDATE', id: savedUser.id },
+      );
+    }
+
+    return savedUser;
   }
 
-  async remove(id: number, deletedBy: number): Promise<void> {
+  async remove(
+    id: number,
+    deletedBy: number,
+    reason?: string,
+  ): Promise<void | ApprovalRequest> {
+    const user = deletedBy ? await this.findById(deletedBy) : null;
+    const roleName =
+      user?.role && typeof user.role === 'object'
+        ? (user.role as { name: string }).name
+        : (user?.role as string | undefined);
+    const isAdmin = roleName === 'ADMIN' || roleName === 'CHỦ CỬA HÀNG';
+
+    if (isAdmin || !deletedBy) {
+      return this.executeRemove(id, deletedBy);
+    }
+
+    const oldData = await this.findById(id);
+
+    return this.approvalsService.create(
+      {
+        type: ApprovalType.DELETE,
+        targetModule: 'Tài khoản',
+        metadata: {
+          serviceName: 'UserService',
+          methodName: 'executeRemove',
+          args: [id],
+          oldData,
+        },
+        reason: reason || `Xóa tài khoản ID: ${id}`,
+      },
+      deletedBy,
+    );
+  }
+
+  async executeRemove(
+    id: number,
+    deletedBy: number,
+    skipNotification = false,
+  ): Promise<void> {
+    const user = await this.findById(id);
     await this.usersRepository.update(id, { deletedBy });
     await this.usersRepository.softDelete(id);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa tài khoản',
+        `Tài khoản "${user?.email || 'N/A'}" đã bị xóa khỏi hệ thống.`,
+        { type: 'USER', action: 'DELETE', id },
+      );
+    }
   }
 
   async findAdmins(): Promise<User[]> {

@@ -12,6 +12,9 @@ import { TableStatus } from '../table/entities/table.entity';
 import { OrderService } from '../order/order.service';
 import { OrderStatus } from '../order/entities/order.entity';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { ApprovalsService } from '../approval/approvals.service';
+import { UserService } from '../user/user.service';
+import { ApprovalType } from '../approval/entities/approval-request.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -22,6 +25,8 @@ export class InvoiceService {
     private readonly invoiceItemRepository: Repository<InvoiceItem>,
     private readonly tableService: TableService,
     private readonly orderService: OrderService,
+    private readonly approvalsService: ApprovalsService,
+    private readonly userService: UserService,
   ) {}
 
   async create(data: Partial<Invoice>, createdBy: number): Promise<Invoice> {
@@ -187,7 +192,7 @@ export class InvoiceService {
     return this.findOne(id);
   }
 
-  async cancel(id: number, userId: number): Promise<Invoice> {
+  async executeCancel(id: number, userId: number): Promise<Invoice> {
     const invoice = await this.findOne(id);
     if (invoice.status === InvoiceStatus.CANCELLED) {
       return invoice;
@@ -199,7 +204,6 @@ export class InvoiceService {
     await this.invoiceRepository.save(invoice);
 
     // If there's an associated table, and the order is also cancelled or completed, free up the table
-    // For simplicity, we free it up if it was occupied
     if (invoice.table?.id) {
       await this.tableService.executeUpdate(
         invoice.table.id,
@@ -215,5 +219,41 @@ export class InvoiceService {
     }
 
     return this.findOne(id);
+  }
+
+  async cancel(id: number, userId: number): Promise<Invoice> {
+    const invoice = await this.findOne(id);
+
+    // Chỉ hủy hóa đơn ĐÃ THANH TOÁN thì mới cần duyệt (nếu không phải admin)
+    if (invoice.status === InvoiceStatus.PAID) {
+      const user = await this.userService.findById(userId);
+      if (!user) throw new NotFoundException('Người dùng không tồn tại');
+
+      const role = user.role;
+      const isPrivileged =
+        typeof role !== 'string' &&
+        (role?.name === 'ADMIN' || role?.name === 'CHỦ CỬA HÀNG');
+
+      if (!isPrivileged) {
+        await this.approvalsService.create(
+          {
+            targetModule: 'Hóa đơn',
+            type: ApprovalType.DELETE,
+            reason: `Yêu cầu hủy hóa đơn đã thanh toán: ${invoice.invoiceNumber}`,
+            metadata: {
+              serviceName: 'InvoiceService',
+              methodName: 'executeCancel',
+              args: [invoice.id, userId],
+            },
+          },
+          userId,
+        );
+
+        return invoice;
+      }
+    }
+
+    // Đối với hóa đơn PENDING hoặc nếu là ADMIN thì hủy ngay
+    return this.executeCancel(id, userId);
   }
 }

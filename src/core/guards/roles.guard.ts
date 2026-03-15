@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserService } from '../../modules/user/user.service';
 import { User } from '../../modules/user/entities/user.entity';
@@ -8,6 +14,8 @@ import { Permission } from '../../common/enums/permission.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger = new Logger(RolesGuard.name);
+
   constructor(
     private reflector: Reflector,
     private userService: UserService,
@@ -32,6 +40,7 @@ export class RolesGuard implements CanActivate {
       user: { id?: number; sub?: number };
       params: Record<string, string>;
       method: string;
+      body?: any;
     } = context.switchToHttp().getRequest();
 
     const userPayload = request.user;
@@ -55,19 +64,35 @@ export class RolesGuard implements CanActivate {
         request.method === 'PATCH' ||
         request.method === 'POST')
     ) {
-      return true;
+      // If updating own profile, do not allow changing roleId unless they have proper permissions
+      const body = request.body;
+      if (request.method === 'PATCH' && body && 'roleId' in body) {
+        // Fall through to permission check logic below for roleId updates
+        this.logger.warn(
+          `User ${userId} attempted to update their own roleId. Falling back to permission check.`,
+        );
+      } else {
+        return true;
+      }
     }
 
     const userRole = user.role;
 
-    // Admin always has access
-    if (
-      userRole &&
-      typeof userRole === 'object' &&
-      'name' in userRole &&
-      (userRole.name === 'ADMIN' || userRole.name === 'CHỦ CỬA HÀNG')
-    ) {
-      return true;
+    // Logic kiểm tra dựa trên Permission động từ DB
+    if (requiredPermissions) {
+      if (
+        userRole &&
+        typeof userRole === 'object' &&
+        'permissions' in userRole &&
+        Array.isArray(userRole.permissions)
+      ) {
+        const userPermissions = userRole.permissions;
+        // Check if user has ANY of the required permissions
+        const hasPermission = requiredPermissions.some((permission) =>
+          userPermissions.includes(permission),
+        );
+        if (hasPermission) return true;
+      }
     }
 
     if (requiredRoles) {
@@ -82,21 +107,6 @@ export class RolesGuard implements CanActivate {
       }
     }
 
-    if (requiredPermissions) {
-      if (
-        userRole &&
-        typeof userRole === 'object' &&
-        'permissions' in userRole &&
-        Array.isArray(userRole.permissions)
-      ) {
-        const userPermissions = userRole.permissions;
-        const hasPermission = requiredPermissions.every((permission) =>
-          userPermissions.includes(permission),
-        );
-        if (hasPermission) return true;
-      }
-    }
-
-    return false;
+    throw new ForbiddenException('Bạn không có quyền thực hiện thao tác này');
   }
 }

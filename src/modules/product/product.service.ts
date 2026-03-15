@@ -11,6 +11,8 @@ import { OrderItem } from '../order/entities/order-item.entity';
 import { OrderStatus } from '../order/entities/order.entity';
 import { In } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/dto/notification.dto';
 
 @Injectable()
 export class ProductService {
@@ -22,13 +24,10 @@ export class ProductService {
     private readonly historyService: ProductHistoryService,
     private readonly userService: UserService,
     private readonly approvalsService: ApprovalsService,
+    private readonly notificationService: NotificationService,
   ) {}
 
-  async create(
-    productData: Partial<Product>,
-    userId?: number,
-    reason?: string,
-  ): Promise<any> {
+  async create(productData: Partial<Product>, userId?: number): Promise<any> {
     if (!userId) {
       return this.executeCreate(productData, userId);
     }
@@ -54,7 +53,7 @@ export class ProductService {
           args: [productData],
           newData: productData,
         },
-        reason: reason || `Tạo sản phẩm mới: ${productData.name}`,
+        reason: `Tạo sản phẩm mới: ${productData.name}`,
       },
       userId,
     );
@@ -63,6 +62,7 @@ export class ProductService {
   async executeCreate(
     productData: Partial<Product>,
     userId?: number,
+    skipNotification = false,
   ): Promise<Product> {
     const product = this.productRepository.create(productData);
     if (userId) {
@@ -77,6 +77,16 @@ export class ProductService {
       newData: savedProduct,
       reason: 'Initial creation',
     });
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Sản phẩm mới',
+        `Sản phẩm "${savedProduct.name}" đã được tạo mới.`,
+        { type: 'PRODUCT', action: 'CREATE', id: savedProduct.id },
+      );
+    }
 
     return savedProduct;
   }
@@ -167,6 +177,7 @@ export class ProductService {
     id: number,
     updateData: Partial<Product>,
     userId?: number,
+    skipNotification = false,
   ): Promise<Product> {
     const oldProduct = await this.findOne(id);
     const updatedProduct = await this.productRepository.save({
@@ -182,6 +193,16 @@ export class ProductService {
       newData: updatedProduct,
       reason: 'Standard update',
     });
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Cập nhật sản phẩm',
+        `Sản phẩm "${updatedProduct.name}" đã được cập nhật thông tin.`,
+        { type: 'PRODUCT', action: 'UPDATE', id: updatedProduct.id },
+      );
+    }
 
     return updatedProduct;
   }
@@ -221,7 +242,11 @@ export class ProductService {
     );
   }
 
-  async executeRemove(id: number, userId?: number): Promise<void> {
+  async executeRemove(
+    id: number,
+    userId?: number,
+    skipNotification = false,
+  ): Promise<void> {
     const product = await this.findOne(id);
 
     // Kiểm tra sản phẩm có trong đơn hàng chưa hoàn tất không
@@ -243,7 +268,7 @@ export class ProductService {
       product.deletedBy = userId;
       await this.productRepository.save(product);
     }
-    await this.productRepository.softRemove(product);
+    const removedProduct = await this.productRepository.softRemove(product);
 
     await this.historyService.createHistory({
       productId: id,
@@ -251,6 +276,16 @@ export class ProductService {
       oldData: product,
       reason: 'Soft delete',
     });
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa sản phẩm',
+        `Sản phẩm "${removedProduct.name}" đã bị xóa khỏi hệ thống.`,
+        { type: 'PRODUCT', action: 'DELETE', id: removedProduct.id },
+      );
+    }
   }
 
   async removeMany(
@@ -291,7 +326,11 @@ export class ProductService {
     );
   }
 
-  async executeRemoveMany(ids: number[], userId?: number): Promise<void> {
+  async executeRemoveMany(
+    ids: number[],
+    userId?: number,
+    skipNotification = false,
+  ): Promise<void> {
     const products = await this.productRepository.findByIds(ids);
 
     // Kiểm tra các sản phẩm có trong đơn hàng chưa hoàn tất không
@@ -313,7 +352,7 @@ export class ProductService {
       if (userId) product.deletedBy = userId;
     }
     await this.productRepository.save(products);
-    await this.productRepository.softRemove(products);
+    const removedProducts = await this.productRepository.softRemove(products);
 
     for (const product of products) {
       await this.historyService.createHistory({
@@ -322,6 +361,20 @@ export class ProductService {
         oldData: product,
         reason: 'Bulk soft delete',
       });
+    }
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa nhiều sản phẩm',
+        `${removedProducts.length} sản phẩm đã bị xóa khỏi hệ thống.`,
+        {
+          type: 'PRODUCT',
+          action: 'DELETE_MANY',
+          ids: removedProducts.map((p) => p.id),
+        },
+      );
     }
   }
 }

@@ -39,14 +39,14 @@ export class TableController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.TABLE_VIEW_ALL)
+  @Permissions(Permission.TABLE_VIEW)
   findAll(@Query('keyword') keyword?: string) {
     return this.tableService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.TABLE_VIEW_ID)
+  @Permissions(Permission.TABLE_VIEW)
   findOne(@Param('id') id: string) {
     return this.tableService.findOne(+id);
   }

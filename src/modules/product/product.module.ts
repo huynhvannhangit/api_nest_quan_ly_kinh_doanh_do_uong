@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { NotificationModule } from '../notification/notification.module';
 import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
 import { Product } from './entities/product.entity';
@@ -14,6 +15,7 @@ import { UserModule } from '../user/user.module';
     TypeOrmModule.forFeature([Product, ProductHistory, OrderItem]),
     ApprovalModule,
     UserModule,
+    NotificationModule,
   ],
   providers: [
     ProductService,

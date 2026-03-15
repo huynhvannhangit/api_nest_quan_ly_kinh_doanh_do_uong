@@ -14,7 +14,7 @@ export class LoggingController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.LOGGING_VIEW_ALL)
+  @Permissions(Permission.LOGGING_VIEW)
   @ActionLog({
     action: 'VIEW_LOGS',
     module: 'LOGGING',

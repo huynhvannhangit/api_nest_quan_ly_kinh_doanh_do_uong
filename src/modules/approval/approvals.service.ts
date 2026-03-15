@@ -3,10 +3,13 @@ import {
   NotFoundException,
   Logger,
   ForbiddenException,
+  Inject,
+  forwardRef,
+  BadRequestException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import {
   ApprovalRequest,
@@ -31,6 +34,9 @@ const MODULE_APPROVE_PERMISSION_MAP: Record<string, Permission> = {
   Bàn: Permission.TABLE_APPROVE,
   'Khu vực': Permission.AREA_APPROVE,
   'Danh mục': Permission.CATEGORY_APPROVE,
+  'Tài khoản': Permission.USER_APPROVE,
+  'Vai trò': Permission.ROLE_APPROVE,
+  'Hóa đơn': Permission.INVOICE_APPROVE,
 };
 
 @Injectable()
@@ -43,6 +49,7 @@ export class ApprovalsService {
     private readonly userRepository: Repository<User>,
     private readonly moduleRef: ModuleRef,
     private readonly notificationService: NotificationService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {}
 
@@ -66,7 +73,7 @@ export class ApprovalsService {
           // Tránh gửi cho chính mình nếu admin là người gửi (thực tế Admin bypass rồi nhưng để cho chắc)
           if (adminUser.id === userId) continue;
 
-          this.notificationService.sendNotification(
+          void this.notificationService.sendNotification(
             NotificationType.APPROVAL_UPDATED, // Use same category or maybe SYSTEM/NEW_APPROVAL if we had it
             'Yêu cầu phê duyệt mới',
             `${requesterName} vừa gửi yêu cầu "${approval.reason || approval.targetModule}"`,
@@ -123,6 +130,9 @@ export class ApprovalsService {
     data: { status: ApprovalStatus; reviewNote?: string },
   ): Promise<ApprovalRequest> {
     const approval = await this.findOne(id);
+    if (approval.status !== ApprovalStatus.PENDING) {
+      throw new BadRequestException('Yêu cầu này đã được xử lý');
+    }
 
     // Permission check
     const reviewer = await this.userRepository.findOne({
@@ -140,7 +150,8 @@ export class ApprovalsService {
       if (
         requiredPermission &&
         !permissions.includes(requiredPermission) &&
-        !permissions.includes(Permission.APPROVAL_MANAGE)
+        !permissions.includes(Permission.APPROVAL_APPROVE) &&
+        !permissions.includes(Permission.APPROVAL_REJECT)
       ) {
         throw new ForbiddenException(
           'Bạn không có quyền phê duyệt yêu cầu cho module này',
@@ -162,7 +173,7 @@ export class ApprovalsService {
     const isApproved = data.status === ApprovalStatus.APPROVED;
     const statusLabel = isApproved ? 'Đã duyệt' : 'Đã từ chối';
     // cspell:disable
-    this.notificationService.sendNotification(
+    void this.notificationService.sendNotification(
       NotificationType.APPROVAL_UPDATED,
       `${statusLabel} yêu cầu phê duyệt`,
       `Yêu cầu ${saved.requestNumber} đã được ${isApproved ? 'phê duyệt' : 'tối chối'}${data.reviewNote ? `: "${data.reviewNote}"` : ''}`,
@@ -187,8 +198,14 @@ export class ApprovalsService {
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Duyệt yêu cầu thất bại';
-        this.logger.error(`Failed to execute approved action: ${errorMessage}`);
-        // Optionally revert status or handle error
+        this.logger.error(
+          `Failed to execute approved action for REQ ${saved.requestNumber}: ${errorMessage}`,
+        );
+        // Important: Re-throw to inform the controller/user that the action failed
+        // even though metadata was found.
+        throw new BadRequestException(
+          `Yêu cầu được duyệt nhưng thực thi hành động thất bại: ${errorMessage}`,
+        );
       }
     }
 
@@ -227,33 +244,18 @@ export class ApprovalsService {
 
       // Execute with arguments from metadata
       const args = metadata.args || [];
-      await method.apply(service, [...args, approval.reviewedBy.id]);
+      // Pass reviewedBy.id and a flag to skip broadcast notifications
+      await method.apply(service, [...args, approval.reviewedBy.id, true]);
       this.logger.log(
         `Successfully executed ${metadata.serviceName}.${methodName} for approval ${approval.requestNumber}`,
       );
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Execution error: ${errorMessage}`);
+      this.logger.error(
+        `Execution error for REQ ${approval.requestNumber} (${metadata.serviceName}.${metadata.methodName}): ${errorMessage}`,
+      );
       throw error;
     }
-  }
-
-  async remove(id: number, userId: number): Promise<void> {
-    const approval = await this.findOne(id);
-    approval.deletedBy = userId;
-    await this.approvalRepository.save(approval);
-    await this.approvalRepository.softRemove(approval);
-  }
-
-  async removeMany(ids: number[], userId: number): Promise<void> {
-    const approvals = await this.approvalRepository.find({
-      where: { id: In(ids) },
-    });
-    for (const approval of approvals) {
-      approval.deletedBy = userId;
-    }
-    await this.approvalRepository.save(approvals);
-    await this.approvalRepository.softRemove(approvals);
   }
 }

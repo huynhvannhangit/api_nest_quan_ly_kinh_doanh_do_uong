@@ -22,21 +22,21 @@ export class StatisticsController {
 
   @Get('overview')
   @HttpCode(200)
-  @Permissions(Permission.STATISTICS_VIEW_ALL)
+  @Permissions(Permission.STATISTICS_VIEW)
   getOverview() {
     return this.statisticsService.getOverview();
   }
 
   @Get('revenue')
   @HttpCode(200)
-  @Permissions(Permission.STATISTICS_VIEW_ALL)
+  @Permissions(Permission.STATISTICS_VIEW)
   getRevenue(@Query() query: StatisticsQueryDto) {
     return this.statisticsService.getRevenueByDateRange(query);
   }
 
   @Get('top-products')
   @HttpCode(200)
-  @Permissions(Permission.STATISTICS_VIEW_ALL)
+  @Permissions(Permission.STATISTICS_VIEW)
   getTopProducts() {
     return this.statisticsService.getTopProducts();
   }
@@ -50,7 +50,7 @@ export class StatisticsController {
 
   @Get('dashboard')
   @HttpCode(200)
-  @Permissions(Permission.STATISTICS_VIEW_ALL)
+  @Permissions(Permission.DASHBOARD_VIEW)
   getDashboard() {
     return this.statisticsService.getDashboardData();
   }

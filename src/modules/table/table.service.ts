@@ -12,6 +12,8 @@ import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/dto/notification.dto';
 import { Order, OrderStatus } from '../order/entities/order.entity';
 import { In } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
@@ -25,13 +27,10 @@ export class TableService {
     private readonly orderRepository: Repository<Order>,
     private readonly userService: UserService,
     private readonly approvalsService: ApprovalsService,
+    private readonly notificationService: NotificationService,
   ) {}
 
-  async create(
-    data: CreateTableDto,
-    createdBy: number,
-    reason?: string,
-  ): Promise<any> {
+  async create(data: CreateTableDto, createdBy: number): Promise<any> {
     const user = await this.userService.findById(createdBy);
     const roleName =
       user?.role && typeof user.role === 'object'
@@ -53,13 +52,17 @@ export class TableService {
           args: [data],
           newData: data,
         },
-        reason: reason || `Tạo bàn mới: ${data.tableNumber}`,
+        reason: `Tạo bàn mới: ${data.tableNumber}`,
       },
       createdBy,
     );
   }
 
-  async executeCreate(data: CreateTableDto, createdBy: number): Promise<Table> {
+  async executeCreate(
+    data: CreateTableDto,
+    createdBy: number,
+    skipNotification = false,
+  ): Promise<Table> {
     const existingTable = await this.tableRepository.findOne({
       where: { tableNumber: data.tableNumber },
     });
@@ -71,7 +74,19 @@ export class TableService {
     Object.assign(table, data);
     table.createdBy = createdBy;
     table.updatedBy = createdBy;
-    return this.tableRepository.save(table);
+    const savedTable = await this.tableRepository.save(table);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Bàn mới',
+        `Bàn "${savedTable.tableNumber}" đã được tạo mới.`,
+        { type: 'TABLE', action: 'CREATE', id: savedTable.id },
+      );
+    }
+
+    return savedTable;
   }
 
   async findAll(keyword?: string): Promise<Table[]> {
@@ -143,6 +158,7 @@ export class TableService {
     id: number,
     data: UpdateTableDto,
     updatedBy: number,
+    skipNotification = false,
   ): Promise<Table> {
     if (data.tableNumber) {
       const existingTable = await this.tableRepository.findOne({
@@ -159,7 +175,19 @@ export class TableService {
     const table = await this.findOne(id);
     Object.assign(table, data);
     table.updatedBy = updatedBy;
-    return this.tableRepository.save(table);
+    const savedTable = await this.tableRepository.save(table);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Cập nhật bàn',
+        `Bàn "${savedTable.tableNumber}" đã được cập nhật thông tin.`,
+        { type: 'TABLE', action: 'UPDATE', id: savedTable.id },
+      );
+    }
+
+    return savedTable;
   }
 
   async remove(id: number, deletedBy: number, reason?: string): Promise<any> {
@@ -192,7 +220,11 @@ export class TableService {
     );
   }
 
-  async executeRemove(id: number, deletedBy: number): Promise<void> {
+  async executeRemove(
+    id: number,
+    deletedBy: number,
+    skipNotification = false,
+  ): Promise<void> {
     const table = await this.findOne(id);
 
     // Kiểm tra bàn có đơn hàng chưa hoàn tất không
@@ -209,7 +241,17 @@ export class TableService {
 
     table.deletedBy = deletedBy;
     await this.tableRepository.save(table);
-    await this.tableRepository.softRemove(table);
+    const removedTable = await this.tableRepository.softRemove(table);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa bàn',
+        `Bàn "${removedTable.tableNumber}" đã bị xóa khỏi hệ thống.`,
+        { type: 'TABLE', action: 'DELETE', id: removedTable.id },
+      );
+    }
   }
 
   async removeMany(
@@ -246,7 +288,11 @@ export class TableService {
     );
   }
 
-  async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
+  async executeRemoveMany(
+    ids: number[],
+    deletedBy: number,
+    skipNotification = false,
+  ): Promise<void> {
     const tables = await this.tableRepository.findByIds(ids);
 
     // Kiểm tra xem có bàn nào đang có đơn hàng chưa hoàn tất không
@@ -265,6 +311,20 @@ export class TableService {
       table.deletedBy = deletedBy;
     }
     await this.tableRepository.save(tables);
-    await this.tableRepository.softRemove(tables);
+    const removedTables = await this.tableRepository.softRemove(tables);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa nhiều bàn',
+        `${removedTables.length} bàn đã bị xóa khỏi hệ thống.`,
+        {
+          type: 'TABLE',
+          action: 'DELETE_MANY',
+          ids: removedTables.map((t) => t.id),
+        },
+      );
+    }
   }
 }

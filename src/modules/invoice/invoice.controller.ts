@@ -43,14 +43,14 @@ export class InvoiceController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.INVOICE_VIEW_ALL)
+  @Permissions(Permission.INVOICE_VIEW)
   findAll(@Query('keyword') keyword?: string): Promise<Invoice[]> {
     return this.invoiceService.findAll(keyword);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.INVOICE_VIEW_ID)
+  @Permissions(Permission.INVOICE_VIEW)
   findOne(@Param('id') id: string): Promise<Invoice> {
     return this.invoiceService.findOne(+id);
   }

@@ -4,7 +4,6 @@ import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
 import { Notification } from './entities/notification.entity';
 import { NotificationController } from './notification.controller';
-import { UserModule } from '../user/user.module';
 
 /**
  * @module NotificationModule
@@ -13,7 +12,7 @@ import { UserModule } from '../user/user.module';
  * Export NotificationService để các module khác (Order, Approval, ...) có thể sử dụng.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Notification]), UserModule],
+  imports: [TypeOrmModule.forFeature([Notification])],
   controllers: [NotificationController],
   providers: [NotificationGateway, NotificationService],
   exports: [NotificationService],

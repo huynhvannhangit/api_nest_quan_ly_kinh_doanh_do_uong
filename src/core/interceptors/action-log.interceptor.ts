@@ -58,7 +58,7 @@ export class ActionLogInterceptor implements NestInterceptor {
             metadata: {
               method,
               url,
-              body: request.body as Record<string, any>,
+              body: this.maskSensitiveInfo(request.body as Record<string, any>),
               params: request.params as Record<string, any>,
               query: request.query as Record<string, any>,
             },
@@ -68,5 +68,27 @@ export class ActionLogInterceptor implements NestInterceptor {
           });
       }),
     );
+  }
+
+  private maskSensitiveInfo(body: Record<string, any>): Record<string, any> {
+    if (!body || typeof body !== 'object') return body;
+
+    const maskedBody = { ...body };
+    const sensitiveKeys = [
+      'password',
+      'oldPassword',
+      'newPassword',
+      'refreshToken',
+      'token',
+      'accessToken',
+    ];
+
+    for (const key of sensitiveKeys) {
+      if (key in maskedBody) {
+        maskedBody[key] = '********';
+      }
+    }
+
+    return maskedBody;
   }
 }

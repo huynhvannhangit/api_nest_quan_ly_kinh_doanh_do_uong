@@ -4,6 +4,7 @@ export enum NotificationType {
   APPROVAL_UPDATED = 'APPROVAL_UPDATED',
   TABLE_STATUS_UPDATED = 'TABLE_STATUS_UPDATED',
   SYSTEM = 'SYSTEM',
+  DATA_MODIFIED = 'DATA_MODIFIED',
 }
 
 export interface NotificationPayload {

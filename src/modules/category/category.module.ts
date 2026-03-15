@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { NotificationModule } from '../notification/notification.module';
 import { CategoryService } from './category.service';
 import { CategoryController } from './category.controller';
 import { Category } from './entities/category.entity';
@@ -12,6 +13,7 @@ import { ApprovalModule } from '../approval/approval.module';
     TypeOrmModule.forFeature([Category, Product]),
     UserModule,
     ApprovalModule,
+    NotificationModule,
   ],
   providers: [
     CategoryService,

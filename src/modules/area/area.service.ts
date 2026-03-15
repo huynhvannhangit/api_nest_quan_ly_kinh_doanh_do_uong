@@ -14,6 +14,8 @@ import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/dto/notification.dto';
 
 @Injectable()
 export class AreaService {
@@ -24,13 +26,10 @@ export class AreaService {
     private readonly tableRepository: Repository<Table>,
     private readonly userService: UserService,
     private readonly approvalsService: ApprovalsService,
+    private readonly notificationService: NotificationService,
   ) {}
 
-  async create(
-    data: CreateAreaDto,
-    createdBy: number,
-    reason?: string,
-  ): Promise<any> {
+  async create(data: CreateAreaDto, createdBy: number): Promise<any> {
     const user = await this.userService.findById(createdBy);
     const roleName =
       user?.role && typeof user.role === 'object'
@@ -52,13 +51,17 @@ export class AreaService {
           args: [data],
           newData: data,
         },
-        reason: reason || `Tạo khu vực mới: ${data.name}`,
+        reason: `Tạo khu vực mới: ${data.name}`,
       },
       createdBy,
     );
   }
 
-  async executeCreate(data: CreateAreaDto, createdBy: number): Promise<Area> {
+  async executeCreate(
+    data: CreateAreaDto,
+    createdBy: number,
+    skipNotification = false,
+  ): Promise<Area> {
     const existingArea = await this.areaRepository.findOne({
       where: { name: data.name },
     });
@@ -70,7 +73,19 @@ export class AreaService {
     Object.assign(area, data);
     area.createdBy = createdBy;
     area.updatedBy = createdBy;
-    return this.areaRepository.save(area);
+    const savedArea = await this.areaRepository.save(area);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Khu vực mới',
+        `Khu vực "${savedArea.name}" đã được tạo mới.`,
+        { type: 'AREA', action: 'CREATE', id: savedArea.id },
+      );
+    }
+
+    return savedArea;
   }
 
   async findAll(keyword?: string): Promise<Area[]> {
@@ -133,6 +148,7 @@ export class AreaService {
     id: number,
     data: UpdateAreaDto,
     updatedBy: number,
+    skipNotification = false,
   ): Promise<Area> {
     if (data.name) {
       const existingArea = await this.areaRepository.findOne({
@@ -149,7 +165,19 @@ export class AreaService {
     const area = await this.findOne(id);
     Object.assign(area, data);
     area.updatedBy = updatedBy;
-    return this.areaRepository.save(area);
+    const savedArea = await this.areaRepository.save(area);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Cập nhật khu vực',
+        `Khu vực "${savedArea.name}" đã được cập nhật thông tin.`,
+        { type: 'AREA', action: 'UPDATE', id: savedArea.id },
+      );
+    }
+
+    return savedArea;
   }
 
   async remove(id: number, deletedBy: number, reason?: string): Promise<any> {
@@ -182,7 +210,11 @@ export class AreaService {
     );
   }
 
-  async executeRemove(id: number, deletedBy: number): Promise<void> {
+  async executeRemove(
+    id: number,
+    deletedBy: number,
+    skipNotification = false,
+  ): Promise<void> {
     const area = await this.findOne(id);
 
     const activeTables = await this.tableRepository.count({
@@ -203,7 +235,17 @@ export class AreaService {
 
     area.deletedBy = deletedBy;
     await this.areaRepository.save(area);
-    await this.areaRepository.softRemove(area);
+    const removedArea = await this.areaRepository.softRemove(area);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa khu vực',
+        `Khu vực "${removedArea.name}" đã bị xóa khỏi hệ thống.`,
+        { type: 'AREA', action: 'DELETE', id: removedArea.id },
+      );
+    }
   }
 
   async removeMany(
@@ -240,7 +282,11 @@ export class AreaService {
     );
   }
 
-  async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
+  async executeRemoveMany(
+    ids: number[],
+    deletedBy: number,
+    skipNotification = false,
+  ): Promise<void> {
     const areas = await this.areaRepository.findByIds(ids);
 
     const activeTables = await this.tableRepository.count({
@@ -263,6 +309,20 @@ export class AreaService {
       area.deletedBy = deletedBy;
     }
     await this.areaRepository.save(areas);
-    await this.areaRepository.softRemove(areas);
+    const removedAreas = await this.areaRepository.softRemove(areas);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa nhiều khu vực',
+        `${removedAreas.length} khu vực đã bị xóa khỏi hệ thống.`,
+        {
+          type: 'AREA',
+          action: 'DELETE_MANY',
+          ids: removedAreas.map((a) => a.id),
+        },
+      );
+    }
   }
 }

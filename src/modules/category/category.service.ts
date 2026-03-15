@@ -9,6 +9,8 @@ import { MESSAGES } from '../../common/constants/messages.constant';
 import { UserService } from '../user/user.service';
 import { ApprovalsService } from '../approval/approvals.service';
 import { ApprovalType } from '../approval/entities/approval-request.entity';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/dto/notification.dto';
 
 @Injectable()
 export class CategoryService {
@@ -19,13 +21,10 @@ export class CategoryService {
     private readonly productRepository: Repository<Product>,
     private readonly userService: UserService,
     private readonly approvalsService: ApprovalsService,
+    private readonly notificationService: NotificationService,
   ) {}
 
-  async create(
-    data: Partial<Category>,
-    createdBy: number,
-    reason?: string,
-  ): Promise<any> {
+  async create(data: Partial<Category>, createdBy: number): Promise<any> {
     const user = await this.userService.findById(createdBy);
     const roleName =
       user?.role && typeof user.role === 'object'
@@ -47,7 +46,7 @@ export class CategoryService {
           args: [data],
           newData: data,
         },
-        reason: reason || `Tạo danh mục mới: ${data.name}`,
+        reason: `Tạo danh mục mới: ${data.name}`,
       },
       createdBy,
     );
@@ -56,11 +55,24 @@ export class CategoryService {
   async executeCreate(
     data: Partial<Category>,
     createdBy: number,
+    skipNotification = false,
   ): Promise<Category> {
     const category = this.categoryRepository.create(data);
     category.createdBy = createdBy;
     category.updatedBy = createdBy;
-    return this.categoryRepository.save(category);
+    const savedCategory = await this.categoryRepository.save(category);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Danh mục mới',
+        `Danh mục "${savedCategory.name}" đã được tạo mới.`,
+        { type: 'CATEGORY', action: 'CREATE', id: savedCategory.id },
+      );
+    }
+
+    return savedCategory;
   }
 
   async findAll(keyword?: string): Promise<Category[]> {
@@ -119,9 +131,22 @@ export class CategoryService {
     id: number,
     data: Partial<Category>,
     updatedBy: number,
+    skipNotification = false,
   ): Promise<Category | null> {
     await this.categoryRepository.update(id, { ...data, updatedBy });
-    return this.findOne(id);
+    const category = await this.findOne(id);
+
+    // Broadcast notification
+    if (category && !skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Cập nhật danh mục',
+        `Danh mục "${category.name}" đã được cập nhật thông tin.`,
+        { type: 'CATEGORY', action: 'UPDATE', id: category.id },
+      );
+    }
+
+    return category;
   }
 
   async remove(id: number, deletedBy: number, reason?: string): Promise<any> {
@@ -153,16 +178,33 @@ export class CategoryService {
       deletedBy,
     );
   }
-
-  async executeRemove(id: number, deletedBy: number): Promise<void> {
+  async executeRemove(
+    id: number,
+    deletedBy: number,
+    skipNotification = false,
+  ): Promise<void> {
     const productsCount = await this.productRepository.count({
       where: { categoryId: id },
     });
     if (productsCount > 0) {
       throw new BadRequestException(MESSAGES.CATEGORY_HAS_PRODUCTS);
     }
+    const category = await this.findOne(id);
+    if (!category) {
+      throw new BadRequestException(MESSAGES.CATEGORY_NOT_FOUND);
+    }
     await this.categoryRepository.update(id, { deletedBy });
-    await this.categoryRepository.softRemove({ id } as any);
+    const removedCategory = await this.categoryRepository.softRemove(category);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa danh mục',
+        `Danh mục "${category?.name || 'N/A'}" đã bị xóa khỏi hệ thống.`,
+        { type: 'CATEGORY', action: 'DELETE', id: removedCategory.id },
+      );
+    }
   }
 
   async removeMany(
@@ -199,7 +241,11 @@ export class CategoryService {
     );
   }
 
-  async executeRemoveMany(ids: number[], deletedBy: number): Promise<void> {
+  async executeRemoveMany(
+    ids: number[],
+    deletedBy: number,
+    skipNotification = false,
+  ): Promise<void> {
     const productsCount = await this.productRepository.count({
       where: { categoryId: In(ids) },
     });
@@ -210,6 +256,21 @@ export class CategoryService {
     const categories = await this.categoryRepository.find({
       where: { id: In(ids) },
     });
-    await this.categoryRepository.softRemove(categories);
+    const removedCategories =
+      await this.categoryRepository.softRemove(categories);
+
+    // Broadcast notification
+    if (!skipNotification) {
+      void this.notificationService.sendNotification(
+        NotificationType.DATA_MODIFIED,
+        'Xóa nhiều danh mục',
+        `${removedCategories.length} danh mục đã bị xóa khỏi hệ thống.`,
+        {
+          type: 'CATEGORY',
+          action: 'DELETE_MANY',
+          ids: removedCategories.map((c) => c.id),
+        },
+      );
+    }
   }
 }

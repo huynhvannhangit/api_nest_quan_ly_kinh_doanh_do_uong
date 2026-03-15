@@ -5,9 +5,9 @@ import {
   Body,
   Param,
   Patch,
-  Delete,
   HttpCode,
   UseGuards,
+  Delete,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { OrderStatus } from './entities/order.entity';
@@ -38,7 +38,7 @@ export class OrderController {
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.ORDER_VIEW_ALL)
+  @Permissions(Permission.ORDER_VIEW)
   findAll() {
     return this.orderService.findAll();
   }
@@ -57,14 +57,14 @@ export class OrderController {
 
   @Get('active/table/:tableId')
   @HttpCode(200)
-  @Permissions(Permission.ORDER_VIEW_ID)
+  @Permissions(Permission.ORDER_VIEW)
   findActiveByTable(@Param('tableId') tableId: string) {
     return this.orderService.findActiveByTable(+tableId);
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.ORDER_VIEW_ID)
+  @Permissions(Permission.ORDER_VIEW)
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(+id);
   }
@@ -135,18 +135,6 @@ export class OrderController {
       `[OrderController] mergeOrder called: id=${id}, targetTableId=${targetTableId} (${typeof targetTableId})`,
     );
     return this.orderService.mergeOrder(+id, targetTableId, userId);
-  }
-
-  @Delete(':id')
-  @HttpCode(200)
-  @Permissions(Permission.ORDER_DELETE)
-  @ActionLog({
-    action: 'DELETE_ORDER',
-    module: 'ORDER',
-    description: 'Xóa đơn hàng',
-  })
-  remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
-    return this.orderService.remove(+id, userId);
   }
 
   @Delete(':id/items/:productId')

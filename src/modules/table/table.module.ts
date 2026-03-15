@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { NotificationModule } from '../notification/notification.module';
 import { TableService } from './table.service';
 import { TableController } from './table.controller';
 import { Table } from './entities/table.entity';
@@ -12,6 +13,7 @@ import { UserModule } from '../user/user.module';
     TypeOrmModule.forFeature([Table, Order]),
     ApprovalModule,
     UserModule,
+    NotificationModule,
   ],
   providers: [
     TableService,

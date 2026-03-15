@@ -16,14 +16,15 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserAdminDto, UpdateUserAdminDto } from './dto/admin-user.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
 import { Permissions } from '../../core/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { GetCurrentUserId } from '../../core/decorators/get-current-user-id.decorator';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { User } from './entities/user.entity';
+import { ApprovalRequest } from '../approval/entities/approval-request.entity';
 
 @Controller('user')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -32,49 +33,55 @@ export class UserController {
 
   @Post()
   @HttpCode(201)
-  @Permissions(Permission.USER_MANAGE)
+  @Permissions(Permission.USER_CREATE)
   create(
-    @Body() createUserDto: CreateUserDto,
+    @Body() createUserDto: CreateUserAdminDto,
     @GetCurrentUserId() userId: number,
-  ) {
-    return this.userService.create(createUserDto, userId);
+    @Body('reason') reason?: string,
+  ): Promise<User | ApprovalRequest> {
+    return this.userService.create(createUserDto, userId, reason);
   }
 
   @Get()
   @HttpCode(200)
-  @Permissions(Permission.USER_VIEW_ALL)
+  @Permissions(Permission.USER_VIEW)
   findAll() {
     return this.userService.findAll();
   }
 
   @Get(':id')
   @HttpCode(200)
-  @Permissions(Permission.USER_VIEW_ID)
+  @Permissions(Permission.USER_VIEW)
   findOne(@Param('id') id: string) {
     return this.userService.findById(+id);
   }
 
   @Patch(':id')
   @HttpCode(200)
-  @Permissions(Permission.USER_MANAGE)
+  @Permissions(Permission.USER_UPDATE)
   update(
     @Param('id') id: string,
-    @Body() updateData: UpdateUserDto,
+    @Body() updateData: UpdateUserAdminDto,
     @GetCurrentUserId() userId: number,
-  ) {
-    return this.userService.update(+id, updateData, userId);
+    @Body('reason') reason?: string,
+  ): Promise<User | ApprovalRequest | undefined> {
+    return this.userService.update(+id, updateData, userId, reason);
   }
 
   @Delete(':id')
   @HttpCode(200)
   @Permissions(Permission.USER_DELETE)
-  remove(@Param('id') id: string, @GetCurrentUserId() userId: number) {
-    return this.userService.remove(+id, userId);
+  remove(
+    @Param('id') id: string,
+    @GetCurrentUserId() userId: number,
+    @Body('reason') reason?: string,
+  ): Promise<void | ApprovalRequest> {
+    return this.userService.remove(+id, userId, reason);
   }
 
   @Post(':id/avatar')
   @HttpCode(200)
-  @Permissions(Permission.USER_MANAGE)
+  @Permissions(Permission.USER_UPDATE)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -92,7 +99,7 @@ export class UserController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @GetCurrentUserId() userId: number,
-  ) {
+  ): Promise<User | ApprovalRequest | undefined> {
     if (!file) {
       throw new BadRequestException(MESSAGES.FILE_REQUIRED);
     }

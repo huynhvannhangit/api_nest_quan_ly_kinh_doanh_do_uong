@@ -59,6 +59,7 @@ export class OrderService {
         order.tableId,
         { status: TableStatus.OCCUPIED },
         createdBy,
+        true,
       );
     }
 
@@ -217,6 +218,7 @@ export class OrderService {
         order.tableId,
         { status: TableStatus.AVAILABLE },
         userId,
+        true,
       );
     }
 
@@ -260,6 +262,7 @@ export class OrderService {
         sourceTableId,
         { status: TableStatus.AVAILABLE },
         userId,
+        true,
       );
     }
 
@@ -267,6 +270,7 @@ export class OrderService {
       targetTableId,
       { status: TableStatus.OCCUPIED },
       userId,
+      true,
     );
 
     // Send notification
@@ -371,6 +375,7 @@ export class OrderService {
         sourceOrder.tableId,
         { status: TableStatus.AVAILABLE },
         userId,
+        true,
       );
     }
 
@@ -383,13 +388,6 @@ export class OrderService {
     );
 
     return savedTargetOrder;
-  }
-
-  async remove(id: number, deletedBy: number): Promise<void> {
-    const order = await this.findOne(id);
-    order.deletedBy = deletedBy;
-    await this.orderRepository.save(order);
-    await this.orderRepository.softRemove(order);
   }
 
   async removeItem(

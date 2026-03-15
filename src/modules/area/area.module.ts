@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { NotificationModule } from '../notification/notification.module';
 import { AreaService } from './area.service';
 import { AreaController } from './area.controller';
 import { Area } from './entities/area.entity';
@@ -12,6 +13,7 @@ import { UserModule } from '../user/user.module';
     TypeOrmModule.forFeature([Area, Table]),
     ApprovalModule,
     UserModule,
+    NotificationModule,
   ],
   providers: [
     AreaService,
