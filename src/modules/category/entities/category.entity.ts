@@ -5,10 +5,10 @@ import { User } from '../../user/entities/user.entity';
 
 @Entity('categories')
 export class Category extends BaseEntity {
-  @Column({ name: 'ten_loai' })
+  @Column({ name: 'name' })
   name: string;
 
-  @Column({ name: 'mo_ta', nullable: true })
+  @Column({ name: 'description', nullable: true })
   description: string;
 
   @OneToMany(() => Product, (product) => product.category)
