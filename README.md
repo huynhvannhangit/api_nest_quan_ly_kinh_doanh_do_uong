@@ -13,7 +13,7 @@ Một hệ thống backend toàn diện dựa trên NestJS để quản lý kinh
 - [Yêu Cầu Hệ Thống](#yêu-cầu-hệ-thống)
 - [Cài Đặt](#cài-đặt)
 - [Chạy Ứng Dụng](#chạy-ứng-dụng)
-- [Di Cư Dữ Liệu & Khởi Tạo (Migrations & Seeding)](#di-cư-dữ-liệu--khởi-tạo-migrations--seeding)
+- [Di Cư Dữ Liệu & Khởi Tạo](#di-cư-dữ-liệu--khởi-tạo)
 - [Tài Liệu API](#tài-liệu-api)
 
 ---
@@ -26,7 +26,7 @@ Chi tiết về yêu cầu hệ thống, thiết kế cơ sở dữ liệu và q
 
 ## 🌟 Giới Thiệu
 
-**Beverage Business Management API** là một giải pháp backend mạnh mẽ và có khả năng mở rộng, được thiết kế riêng cho các cửa hàng đồ uống, quán cà phê và nhà hàng hiện đại. Được xây dựng với **NestJS**, nó cung cấp một nền tảng vững chắc để quản lý các hoạt động hàng ngày, từ kho hàng và xử lý đơn hàng đến hiệu suất của nhân viên và báo cáo tài chính.
+**API Quản lý Kinh doanh Đồ uống** là một giải pháp backend mạnh mẽ và có khả năng mở rộng, được thiết kế riêng cho các cửa hàng đồ uống, quán cà phê và nhà hàng hiện đại. Được xây dựng với **NestJS**, nó cung cấp một nền tảng vững chắc để quản lý các hoạt động hàng ngày, từ kho hàng và xử lý đơn hàng đến hiệu suất của nhân viên và báo cáo tài chính.
 
 Điểm đặc biệt của dự án này là tích hợp **thông tin dựa trên AI** (Gemini/OpenAI) và **thống kê thời gian thực**, giúp chủ doanh nghiệp đưa ra các quyết định dựa trên dữ liệu. Cho dù đó là theo dõi các loại đồ uống bán chạy nhất, quản lý lịch trình nhân viên hay tự động hóa quy trình phê duyệt cho các hành động nhạy cảm, API này đều xử lý tất cả với tiêu chí bảo mật và hiệu quả làm đầu.
 
@@ -37,13 +37,13 @@ Chi tiết về yêu cầu hệ thống, thiết kế cơ sở dữ liệu và q
 Ứng dụng được mô-đun hóa thành các lĩnh vực kinh doanh chính:
 
 - **🤖 Trợ lý AI**: Chatbot thông minh tích hợp sẵn, hỗ trợ bởi OpenAI/Gemini để cung cấp câu trả lời nhanh chóng về hiệu quả kinh doanh (doanh thu, đơn hàng, v.v.).
-- **📊 Thống kê thời gian thực**: Các API sẵn sàng cho dashboard để theo dõi tổng doanh thu, tỷ lệ hoàn thành đơn hàng và các sản phẩm bán chạy nhất.
-- **🔐 Bảo mật nâng cao**: Hệ thống xác thực/phân quyền an toàn với JWT và Kiểm soát truy cập dựa trên vai trò (RBAC) chi tiết.
-- **🛒 Quản lý Đồ án & Hóa đơn**: Luồng công việc liền mạch từ gọi món tại bàn đến tạo hóa đơn và xử lý thanh toán.
+- **📊 Thống kê thời gian thực**: Các API sẵn sàng cho bảng điều khiển (dashboard) để theo dõi tổng doanh thu, tỷ lệ hoàn thành đơn hàng và các sản phẩm bán chạy nhất.
+- **🔐 Bảo mật nâng cao**: Hệ thống xác thực và phân quyền an toàn với JWT và Kiểm soát truy cập dựa trên vai trò (RBAC) chi tiết.
+- **🛒 Quản lý Đơn hàng & Hóa đơn**: Luồng công việc liền mạch từ gọi món tại bàn đến tạo hóa đơn và xử lý thanh toán.
 - **👥 Hệ thống Nhân viên & Người dùng**: Quản lý toàn diện hồ sơ nhân viên, vai trò và quyền hạn.
 - **📦 Sản phẩm & Kho hàng**: Quản lý danh mục, sản phẩm, giá cả và hình ảnh một cách dễ dàng.
-- **✅ Quy trình Phê duyệt**: Quy trình phê duyệt có cấu trúc cho các hành động quan trọng (ví dụ: hoàn tiền, hủy đơn) để đảm bảo trách nhiệm.
-- **📍 Quản lý Khu vực & Bàn**: Ánh xạ kỹ thuật số bố cục cửa hàng vật lý để phục vụ bàn hiệu quả.
+- **✅ Quy trình Phê duyệt**: Quy trình phê duyệt có cấu trúc cho các hành động quan trọng (ví dụ: hoàn tiền, hủy đơn) để đảm bảo tính minh bạch và trách nhiệm.
+- **📍 Quản lý Khu vực & Bàn**: Sơ đồ hóa kỹ thuật số bố cục cửa hàng vật lý để phục vụ tại bàn hiệu quả.
 
 ---
 
@@ -65,7 +65,7 @@ Chi tiết về yêu cầu hệ thống, thiết kế cơ sở dữ liệu và q
 
 ## 🚦 Yêu Cầu Hệ Thống
 
-- Node.js (v18 trở lên)
+- Node.js (phiên bản 18 trở lên)
 - Yarn hoặc NPM
 - Cơ sở dữ liệu MySQL
 
@@ -73,14 +73,14 @@ Chi tiết về yêu cầu hệ thống, thiết kế cơ sở dữ liệu và q
 
 ## ⚙️ Cài Đặt
 
-1.  **Sao chép mã nguồn (Clone repository)**
+1.  **Sao chép mã nguồn**
 
     ```bash
     git clone <repository-url>
     cd api_nest_quan_ly_kinh_doanh_do_uong
     ```
 
-2.  **Cài đặt các gói phụ thuộc**
+2.  **Cài đặt các thư viện phụ thuộc**
 
     ```bash
     yarn install
@@ -88,7 +88,7 @@ Chi tiết về yêu cầu hệ thống, thiết kế cơ sở dữ liệu và q
 
 3.  **Cấu hình môi trường**
 
-    Tạo tệp `.env` trong thư mục gốc và cấu hình các biến môi trường (Kết nối cơ sở dữ liệu, JWT secret, v.v.).
+    Tạo tệp `.env` trong thư mục gốc và cấu hình các biến môi trường (Kết nối cơ sở dữ liệu, mã bí mật JWT, v.v.).
 
 ---
 
@@ -98,24 +98,24 @@ Chi tiết về yêu cầu hệ thống, thiết kế cơ sở dữ liệu và q
 # Chế độ phát triển
 yarn run start
 
-# Chế độ phát triển (watch mode)
+# Chế độ phát triển (tự động cập nhật - watch mode)
 yarn run start:dev
 
-# Chế độ sản xuất (production)
+# Chế độ thực tế (production)
 yarn run start:prod
 ```
 
 ---
 
-## 🗄 Di Cư Dữ Liệu & Khởi Tạo (Migrations & Seeding)
+## 🗄 Di Cư Dữ Liệu & Khởi Tạo
 
-**Chạy Migrations:**
+**Chạy Migration (Cập nhật cấu trúc DB):**
 
 ```bash
 yarn migration:run
 ```
 
-**Khởi tạo dữ liệu mẫu (User Admin, dữ liệu ban đầu):**
+**Khởi tạo dữ liệu mẫu (Tài khoản Admin, dữ liệu ban đầu):**
 
 ```bash
 yarn seed
@@ -125,13 +125,13 @@ yarn seed
 
 ## 📖 Tài Liệu API
 
-Khi ứng dụng đang chạy, bạn có thể truy cập tài liệu Swagger API tại:
+Khi ứng dụng đang chạy, bạn có thể truy cập tài liệu hướng dẫn API (Swagger) tại:
 
 ```
 http://localhost:3000/api
 ```
 
-_(Lưu ý: Thay thế `3000` bằng cổng (PORT) bạn đã cấu hình nếu khác)_
+*(Lưu ý: Thay thế `3000` bằng cổng (PORT) bạn đã cấu hình trong file .env)*
 
 ---
 
@@ -140,8 +140,8 @@ _(Lưu ý: Thay thế `3000` bằng cổng (PORT) bạn đã cấu hình nếu k
 ```
 src/
 ├── common/         # Cấu hình chung, decorators, filters
-├── core/           # Module cốt lõi, guards, interceptors
-├── database/       # Migrations, seeds, cấu hình data source
-├── modules/        # Các module tính năng (Auth, Product, Order, v.v.)
-└── main.ts         # Điểm vào của ứng dụng
+├── core/           # Module cốt lõi, bảo mật (guards), interceptors
+├── database/       # Migrations, seeds, cấu hình dữ liệu
+├── modules/        # Các module tính năng (Xác thực, Sản phẩm, Đơn hàng, v.v.)
+└── main.ts         # Điểm khởi chạy của ứng dụng
 ```
