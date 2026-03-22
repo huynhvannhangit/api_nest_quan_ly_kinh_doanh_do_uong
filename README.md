@@ -1,120 +1,147 @@
-# Beverage Business Management API
+# API Quản Lý Kinh Doanh Đồ Uống
 
-A comprehensive NestJS-based API for managing a beverage business, including features for products, orders, employees, tables, and statistics.
+Một hệ thống backend toàn diện dựa trên NestJS để quản lý kinh doanh đồ uống, bao gồm các tính năng cho sản phẩm, đơn hàng, nhân viên, bàn và thống kê.
 
-## Table of Contents
+---
 
-- [Introduction](#introduction)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Running the App](#running-the-app)
-- [Database Migrations & Seeding](#database-migrations--seeding)
-- [API Documentation](#api-documentation)
+## 📑 Mục Lục
 
-## Introduction
+- [Giới Thiệu](#giới-thiệu)
+- [Báo Cáo Dự Án](#báo-cáo-dự-án)
+- [Tính Năng](#tính-năng)
+- [Công Nghệ Sử Dụng](#công-ngệ-sử-dụng)
+- [Yêu Cầu Hệ Thống](#yêu-cầu-hệ-thống)
+- [Cài Đặt](#cài-đặt)
+- [Chạy Ứng Dụng](#chạy-ứng-dụng)
+- [Di Cư Dữ Liệu & Khởi Tạo (Migrations & Seeding)](#di-cư-dữ-liệu--khởi-tạo-migrations--seeding)
+- [Tài Liệu API](#tài-liệu-api)
 
-The **Beverage Business Management API** is a robust and scalable backend solution tailored for modern beverage shops, cafes, and restaurants. Built with **NestJS**, it provides a solid foundation for managing daily operations, from inventory and order processing to employee performance and financial reporting.
+---
 
-What sets this project apart is its integration of **AI-driven insights** and **real-time statistics**, empowering business owners to make data-backed decisions. Whether it's tracking the top-selling drinks, managing staff schedules, or automating approval workflows for sensitive actions, this API handles it all with security and efficiency in mind.
+## 📄 Báo Cáo Dự Án
+Chi tiết về yêu cầu hệ thống, thiết kế cơ sở dữ liệu và quy trình nghiệp vụ của toàn bộ đồ án có thể được tìm thấy tại:
+👉 **[Xem Báo Cáo Đồ Án Chuyên Ngành 2](https://drive.google.com/file/d/1k0uGiPZl95nbOvWFmxplT5eA__Nfxd7W/view?usp=drive_link)**
 
-## Features
+---
 
-The application is modularized into several key business domains:
+## 🌟 Giới Thiệu
 
-- **🤖 AI Assistant**: Built-in intelligent chatbot powered by OpenAI to provide instant answers about business performance (revenue, orders, etc.).
-- **📊 Real-time Statistics**: Dashboard-ready APIs for tracking total revenue, order completion rates, and top-selling products.
-- **🔐 Advanced Security**: Secure authentication/authorization system with JWT and granular Role-Based Access Control (RBAC).
-- **🛒 Order & Invoice Management**: Seamless flow from table ordering to invoice generation and payment processing.
-- **👥 Employee & User System**: Comprehensive management of staff profiles, roles, and permissions.
-- **📦 Product & Inventory**: Manage categories, products, prices, and images with ease.
-- **✅ Approval Workflows**: Structured approval process for critical actions (e.g., refunds, voids) ensuring accountability.
-- **📍 Area & Table Management**: Digital mapping of physical store layout for efficient table service.
+**Beverage Business Management API** là một giải pháp backend mạnh mẽ và có khả năng mở rộng, được thiết kế riêng cho các cửa hàng đồ uống, quán cà phê và nhà hàng hiện đại. Được xây dựng với **NestJS**, nó cung cấp một nền tảng vững chắc để quản lý các hoạt động hàng ngày, từ kho hàng và xử lý đơn hàng đến hiệu suất của nhân viên và báo cáo tài chính.
 
-## Tech Stack
+Điểm đặc biệt của dự án này là tích hợp **thông tin dựa trên AI** (Gemini/OpenAI) và **thống kê thời gian thực**, giúp chủ doanh nghiệp đưa ra các quyết định dựa trên dữ liệu. Cho dù đó là theo dõi các loại đồ uống bán chạy nhất, quản lý lịch trình nhân viên hay tự động hóa quy trình phê duyệt cho các hành động nhạy cảm, API này đều xử lý tất cả với tiêu chí bảo mật và hiệu quả làm đầu.
 
-- **Framework**: [NestJS](https://nestjs.com/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Database**: [MySQL](https://www.mysql.com/)
+---
+
+## 🚀 Tính Năng
+
+Ứng dụng được mô-đun hóa thành các lĩnh vực kinh doanh chính:
+
+- **🤖 Trợ lý AI**: Chatbot thông minh tích hợp sẵn, hỗ trợ bởi OpenAI/Gemini để cung cấp câu trả lời nhanh chóng về hiệu quả kinh doanh (doanh thu, đơn hàng, v.v.).
+- **📊 Thống kê thời gian thực**: Các API sẵn sàng cho dashboard để theo dõi tổng doanh thu, tỷ lệ hoàn thành đơn hàng và các sản phẩm bán chạy nhất.
+- **🔐 Bảo mật nâng cao**: Hệ thống xác thực/phân quyền an toàn với JWT và Kiểm soát truy cập dựa trên vai trò (RBAC) chi tiết.
+- **🛒 Quản lý Đồ án & Hóa đơn**: Luồng công việc liền mạch từ gọi món tại bàn đến tạo hóa đơn và xử lý thanh toán.
+- **👥 Hệ thống Nhân viên & Người dùng**: Quản lý toàn diện hồ sơ nhân viên, vai trò và quyền hạn.
+- **📦 Sản phẩm & Kho hàng**: Quản lý danh mục, sản phẩm, giá cả và hình ảnh một cách dễ dàng.
+- **✅ Quy trình Phê duyệt**: Quy trình phê duyệt có cấu trúc cho các hành động quan trọng (ví dụ: hoàn tiền, hủy đơn) để đảm bảo trách nhiệm.
+- **📍 Quản lý Khu vực & Bàn**: Ánh xạ kỹ thuật số bố cục cửa hàng vật lý để phục vụ bàn hiệu quả.
+
+---
+
+## 🛠 Công Nghệ Sử Dụng
+
+- **Khung chương trình (Framework)**: [NestJS](https://nestjs.com/)
+- **Ngôn ngữ**: [TypeScript](https://www.typescriptlang.org/)
+- **Cơ sở dữ liệu**: [MySQL](https://www.mysql.com/)
 - **ORM**: [TypeORM](https://typeorm.io/)
-- **Documentation**: [Swagger](https://swagger.io/)
-- **Tools**:
-  - **Validation**: class-validator, class-transformer
-  - **Authentication**: Passport, JWT
+- **Tài liệu**: [Swagger](https://swagger.io/)
+- **Công cụ hỗ trợ**:
+  - **Xác thực dữ liệu**: class-validator, class-transformer
+  - **Xác thực người dùng**: Passport, JWT
   - **Email**: Nodemailer
   - **Excel**: ExcelJS
-  - **AI**: OpenAI SDK
+  - **AI**: Google Gemini (@google/generative-ai), OpenAI SDK
 
-## Prerequisites
+---
 
-- Node.js (v18 or later recommended)
-- Yarn or NPM
-- MySQL Database
+## 🚦 Yêu Cầu Hệ Thống
 
-## Installation
+- Node.js (v18 trở lên)
+- Yarn hoặc NPM
+- Cơ sở dữ liệu MySQL
 
-1.  **Clone the repository**
+---
+
+## ⚙️ Cài Đặt
+
+1.  **Sao chép mã nguồn (Clone repository)**
 
     ```bash
     git clone <repository-url>
     cd api_nest_quan_ly_kinh_doanh_do_uong
     ```
 
-2.  **Install dependencies**
+2.  **Cài đặt các gói phụ thuộc**
 
     ```bash
     yarn install
     ```
 
-3.  **Environment Configuration**
+3.  **Cấu hình môi trường**
 
-    Create a `.env` file in the root directory and configure your environment variables (Database connection, JWT secret, etc.).
+    Tạo tệp `.env` trong thư mục gốc và cấu hình các biến môi trường (Kết nối cơ sở dữ liệu, JWT secret, v.v.).
 
-## Running the App
+---
+
+## 🚀 Chạy Ứng Dụng
 
 ```bash
-# development
+# Chế độ phát triển
 yarn run start
 
-# watch mode
+# Chế độ phát triển (watch mode)
 yarn run start:dev
 
-# production mode
+# Chế độ sản xuất (production)
 yarn run start:prod
 ```
 
-## Database Migrations & Seeding
+---
 
-**Run Migrations:**
+## 🗄 Di Cư Dữ Liệu & Khởi Tạo (Migrations & Seeding)
+
+**Chạy Migrations:**
 
 ```bash
 yarn migration:run
 ```
 
-**Seed Database (Admin user, initial data):**
+**Khởi tạo dữ liệu mẫu (User Admin, dữ liệu ban đầu):**
 
 ```bash
 yarn seed
 ```
 
-## API Documentation
+---
 
-Once the application is running, you can access the Swagger API documentation at:
+## 📖 Tài Liệu API
+
+Khi ứng dụng đang chạy, bạn có thể truy cập tài liệu Swagger API tại:
 
 ```
 http://localhost:3000/api
 ```
 
-_(Note: Replace `3000` with your configured PORT if different)_
+_(Lưu ý: Thay thế `3000` bằng cổng (PORT) bạn đã cấu hình nếu khác)_
 
-## Project Structure
+---
+
+## 📁 Cấu Trúc Thư Mục
 
 ```
 src/
-├── common/         # Shared configuration, decorators, filters
-├── core/           # Core modules, guards, interceptors
-├── database/       # Migrations, seeds, data source config
-├── modules/        # Feature modules (Auth, Product, Order, etc.)
-└── main.ts         # Application entry point
+├── common/         # Cấu hình chung, decorators, filters
+├── core/           # Module cốt lõi, guards, interceptors
+├── database/       # Migrations, seeds, cấu hình data source
+├── modules/        # Các module tính năng (Auth, Product, Order, v.v.)
+└── main.ts         # Điểm vào của ứng dụng
 ```
